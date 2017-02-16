@@ -1,6 +1,5 @@
 from bidict import bidict
 
-
 class Translator:
     """Class in charge of translating several languages to column names and vice versa"""
 
