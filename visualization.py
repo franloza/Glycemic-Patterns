@@ -40,9 +40,9 @@ def plot_blocks(data, init_day, translator, end_day=None):
     for key, grp in smoothed_sample.groupby(['Block', 'Day_Block']):
         ax = grp.plot(ax=ax, kind='line', x="Datetime", y="Glucose_Auto")
         if one_day:
-            labels.append("Block " + str(key[0]))
+            labels.append("{} {:d}".format(translator.translate_to_language(["Block"])[0], key[0]))
         else:
-            labels.append("Block {:d} ({:%d/%m}) ".format(key[0], key[1]))
+            labels.append("{} {:d} ({:%d/%m}) ".format(translator.translate_to_language(["Block"])[0], key[0], key[1]))
     lines, _ = ax.get_legend_handles_labels()
     if one_day:
         ax.legend(lines, labels, loc='best')

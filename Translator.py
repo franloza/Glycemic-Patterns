@@ -34,6 +34,7 @@ class Translator:
         'Carbohidratos (raciones)': 'Carbo',
         'Insulina de acción lenta sin valor numérico': 'Long_Insulin_No_Val',
         'Insulina de acción lenta (unidades)': 'Long_Insulin',
+        'Bloque': 'Block'
     })
 
     __en_to_column_dict = bidict({
