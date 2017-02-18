@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 import datetime
 import pandas as pd
-import numpy as np
+import subprocess
+import pydot
+from sklearn.tree import export_graphviz
+from io import StringIO
 
 
 def plot_blocks(data, init_day, translator, end_day=None):
-
     if end_day == None:
         end_day = init_day
 
@@ -73,3 +75,35 @@ def smooth_plot(data):
     smoothed_data.fillna(method='pad', inplace=True, downcast='infer')
 
     return smoothed_data
+
+
+def generate_png_tree(tree, feature_names, target_names):
+    """Create PNG image of a decision tree using graphviz.
+
+    Args
+    ----
+    tree -- scikit-learn DecsisionTree.
+    feature_names -- list of feature names.
+    """
+    with open("tree.dot", 'w') as f:
+        export_graphviz(tree, out_file=f,
+                        feature_names=feature_names,
+                        class_names=target_names,
+                        filled=True, rounded=True,
+                        special_characters=True)
+
+    command = ["dot", "-Tpng", "tree.dot", "-o", "dt.png"]
+    try:
+        subprocess.check_call(command)
+    except:
+        exit("Could not run dot, ie graphviz, to produce visualization")
+
+
+def generate_graph_tree(tree, feature_names, target_names):
+    dot_data = StringIO()
+    export_graphviz(tree, out_file=dot_data,
+                    feature_names=feature_names,
+                    class_names=target_names,
+                    filled=True, rounded=True,
+                    special_characters=True)
+    return pydot.graph_from_dot_data(dot_data.getvalue())
