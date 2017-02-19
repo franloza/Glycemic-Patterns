@@ -45,6 +45,7 @@ def define_blocks(data):
     # Initialize new columns
     auto_gluc_blocks.loc[:, "Block"] = 0
     auto_gluc_blocks.loc[:, "Day_Block"] = np.nan
+    auto_gluc_blocks.loc[:, "Last_Meal"] = np.nan
     auto_gluc_blocks.loc[:, "Overlapped_Block"] = False
     auto_gluc_blocks.loc[:, "Carbo_Block"] = 0
     auto_gluc_blocks.loc[:, "Rapid_Insulin_Block"] = 0
@@ -66,7 +67,8 @@ def define_blocks(data):
             carbo = mid_block["Carbo"]
             auto_gluc_blocks.loc[
                 (auto_gluc_blocks["Datetime"].isin(block_time_window))
-                & (auto_gluc_blocks["Block"] == 0), ["Block", "Day_Block", "Carbo_Block", "Rapid_Insulin_Block"]] \
+                & (auto_gluc_blocks["Block"] == 0), ["Block", "Day_Block", "Carbo_Block",
+                                                     "Rapid_Insulin_Block"]] \
                 = [block_idx, mid_block_datetime.date(), carbo, rapid_insulin]
 
             # Associate block to each insulin and carbohydrates entry to use in overlapped blocks
@@ -87,13 +89,15 @@ def define_blocks(data):
             auto_gluc_blocks = auto_gluc_blocks.append(overlapped, ignore_index=True)
             block_idx += 1
 
-    # Update insulin and carbo information of the overlapped blocks
+    # Update time of last meal, insulin and carbo information of the overlapped blocks
     for index, block_data in carbo_insulin_data.iterrows():
         rapid_insulin = block_data["Rapid_Insulin"]
         carbo = block_data["Carbo"]
-        mask = ((auto_gluc_blocks["Block"] == block_data["Block"]) \
+        mask = ((auto_gluc_blocks["Block"] == block_data["Block"])
                 & (auto_gluc_blocks["Day_Block"] == block_data["Day_Block"]))
         auto_gluc_blocks.loc[mask, ["Carbo_Block", "Rapid_Insulin_Block"]] = [carbo, rapid_insulin]
+        auto_gluc_blocks.loc[auto_gluc_blocks["Datetime"] >= block_data["Datetime"], "Last_Meal"] =\
+            block_data["Datetime"]
 
     auto_gluc_blocks.loc[auto_gluc_blocks["Day_Block"].isnull(), "Day_Block"] = \
         auto_gluc_blocks["Datetime"].dt.date
@@ -151,6 +155,9 @@ def extend_data(data):
     :return: Extended dataset
     """
 
+    # Delete rows with no previous meal (Initial values)
+    data.dropna(inplace='True', subset=['Last_Meal'])
+
     # Add block information (Mean, Standard deviation, minimum value and maximum value) for each day
     new_columns = data.groupby(['Block', 'Day_Block']).agg({'Glucose_Auto': [np.mean, np.std, np.min, np.max]})[
         "Glucose_Auto"]
@@ -170,8 +177,10 @@ def extend_data(data):
     for day in days:
         new_data.loc[new_data['Day_Block'] == day, "MAGE"] = mage(new_data[new_data['Day_Block'] == day])
 
-    # Add additional information (Weekday)
+    # Add additional information (Weekday and minutes since last meal)
     new_data.loc[:, "Weekday"] = new_data.apply(lambda row: row["Day_Block"].weekday() + 1, axis=1)
+    new_data.loc[:, "Minutes_Last_Meal"] = new_data.apply(lambda row: int((row["Datetime"] - row["Last_Meal"])
+                                                                          .total_seconds() / 60), axis=1)
 
     # Add label to each entry (Diagnosis)
     new_data.loc[:, "Diagnosis"] = new_data["Glucose_Auto"].apply(label_map)
