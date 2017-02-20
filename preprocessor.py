@@ -2,6 +2,7 @@ import numpy as np
 import datetime
 import pandas as pd
 import peakdetect
+from sklearn.preprocessing import LabelBinarizer, Imputer
 
 
 def define_blocks(data):
@@ -155,9 +156,6 @@ def extend_data(data):
     :return: Extended dataset
     """
 
-    # Delete rows with no previous meal (Initial values)
-    data.dropna(inplace='True', subset=['Last_Meal'])
-
     # Add block information (Mean, Standard deviation, minimum value and maximum value) for each day
     new_columns = data.groupby(['Block', 'Day_Block']).agg({'Glucose_Auto': [np.mean, np.std, np.min, np.max]})[
         "Glucose_Auto"]
@@ -206,3 +204,67 @@ def label_map(value):
         return 'Normal'
 
 
+def clean_processed_data(data):
+
+    """ Function that handle entries with NaN values produced by its division in blocks with the function
+    define_blocks.
+    IMPORTANT: It can cause information loss by removing entries. Don't use it to plot information
+
+    :param data: data returned by define_blocks
+    :return: cleaned data
+    """
+
+    new_data = data.copy()
+
+    # Delete rows with no previous meal (Initial values)
+    new_data.dropna(inplace='True', subset=['Last_Meal'])
+
+    return new_data
+
+
+def clean_extended_data(data):
+    """ Function that handle entries with NaN values produced by extending the dataset with the function
+    extend_data
+    IMPORTANT: It can cause information loss by removing entries. Don't use it to plot information
+
+    :param data: data returned by extended_data
+    :return: cleaned data
+    """
+
+    new_data = data.copy()
+
+    # Infer entries with no MAGE with mean
+    imp = Imputer(missing_values='NaN', strategy='mean', axis=0)
+    imputed_mage = imp.fit_transform(new_data["MAGE"].reshape(-1, 1))
+    new_data.loc[:, "MAGE"] = imputed_mage
+
+    return new_data
+
+def prepare_to_decision_trees (data):
+    """ Function that returns the data and the labels ready to create a Decision tree
+        IMPORTANT: It can cause information loss by removing entries. Don't use it to plot information
+
+        :param data: cleaned extended data
+        :return: data and labels to create DecisionTree object
+        """
+
+    # Remove columns that cannot be passed to the estimator
+    new_data = data.drop(["Datetime", "Day_Block", "Last_Meal"], axis=1)
+
+    # Remove columns that contains information that should not be used to discover patterns.
+    # i.e. current glucose level
+    new_data.drop("Glucose_Auto", axis=1, inplace=True)
+
+    # Binarize labels in a one-vs-all fashion (Hyperglycemia, Hypoglycemia and Normal)
+    # to get binary labels
+    lb = LabelBinarizer(neg_label=0, pos_label=1, sparse_output=False)
+    lb.fit(data["Diagnosis"])
+    labels = pd.DataFrame(index=data.index)
+    for x in lb.classes_:
+        labels[x + "_Diagnosis"] = np.nan
+    labels.loc[:, [x + "_Diagnosis" for x in lb.classes_]] = lb.transform(data["Diagnosis"])
+
+    #Delete diagnosis columnn (label)
+    new_data.drop("Diagnosis", axis=1, inplace=True)
+
+    return [new_data, labels]
