@@ -44,6 +44,7 @@ def define_blocks(data):
     carbo_insulin_data = pd.merge(carbo_data, insulin_data, how='left', on="Datetime").fillna(0)
 
     # Initialize new columns
+    auto_gluc_blocks.loc[:, "Hour"] = auto_gluc_blocks["Datetime"].dt.hour
     auto_gluc_blocks.loc[:, "Block"] = 0
     auto_gluc_blocks.loc[:, "Day_Block"] = np.nan
     auto_gluc_blocks.loc[:, "Last_Meal"] = np.nan
@@ -90,7 +91,7 @@ def define_blocks(data):
             auto_gluc_blocks = auto_gluc_blocks.append(overlapped, ignore_index=True)
             block_idx += 1
 
-    # Update time of last meal, insulin and carbo information of the overlapped blocks
+    # Update hour of the block, time of last meal, insulin and carbo information of the overlapped blocks
     for index, block_data in carbo_insulin_data.iterrows():
         rapid_insulin = block_data["Rapid_Insulin"]
         carbo = block_data["Carbo"]
@@ -100,8 +101,10 @@ def define_blocks(data):
         auto_gluc_blocks.loc[auto_gluc_blocks["Datetime"] >= block_data["Datetime"], "Last_Meal"] =\
             block_data["Datetime"]
 
+    # Add day and time to Block 0
     auto_gluc_blocks.loc[auto_gluc_blocks["Day_Block"].isnull(), "Day_Block"] = \
         auto_gluc_blocks["Datetime"].dt.date
+
 
     auto_gluc_blocks.sort_values(by=["Datetime", "Block"], inplace=True)
 
@@ -179,6 +182,7 @@ def extend_data(data):
     new_data.loc[:, "Weekday"] = new_data.apply(lambda row: row["Day_Block"].weekday() + 1, axis=1)
     new_data.loc[:, "Minutes_Last_Meal"] = new_data.apply(lambda row: int((row["Datetime"] - row["Last_Meal"])
                                                                           .total_seconds() / 60), axis=1)
+    new_data.loc[:, "Last_Meal_Hour"] = new_data["Last_Meal"].apply(lambda row: row.hour)
 
     # Add label to each entry (Diagnosis)
     new_data.loc[:, "Diagnosis"] = new_data["Glucose_Auto"].apply(label_map)
@@ -235,7 +239,7 @@ def clean_extended_data(data):
 
     # Infer entries with no MAGE with mean
     imp = Imputer(missing_values='NaN', strategy='mean', axis=0)
-    imputed_mage = imp.fit_transform(new_data["MAGE"].reshape(-1, 1))
+    imputed_mage = imp.fit_transform(new_data["MAGE"].values.reshape(-1, 1))
     new_data.loc[:, "MAGE"] = imputed_mage
 
     return new_data

@@ -34,6 +34,9 @@ class DecisionTree:
         #Generate graph
         self.__generate_graph()
 
+        #Feature importance
+        self.feature_importances = self.__model.feature_importances_
+
     def __generate_graph(self):
         label_name = self.label.name.split('_')[0]
         binary_labels = ["No " + label_name, label_name]
