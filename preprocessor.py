@@ -178,11 +178,37 @@ def extend_data(data):
     for day in days:
         new_data.loc[new_data['Day_Block'] == day, "MAGE"] = mage(new_data[new_data['Day_Block'] == day])
 
-    # Add additional information (Weekday and minutes since last meal)
+    # Add additional information (Weekday, minutes since last meal and hour of the last meal)
     new_data.loc[:, "Weekday"] = new_data.apply(lambda row: row["Day_Block"].weekday() + 1, axis=1)
     new_data.loc[:, "Minutes_Last_Meal"] = new_data.apply(lambda row: int((row["Datetime"] - row["Last_Meal"])
                                                                           .total_seconds() / 60), axis=1)
     new_data.loc[:, "Last_Meal_Hour"] = new_data["Last_Meal"].apply(lambda row: row.hour)
+
+    # Add data corresponding to the previous block
+    offset = 1
+    counter = 0
+    previous = np.nan
+    new_data.loc[:, "Glucose_Mean_Prev_Block"] = np.nan
+    new_data.loc[:, "Glucose_Std_Prev_Block"] = np.nan
+    new_data.loc[:, "Glucose_Min_Prev_Block"] = np.nan
+    new_data.loc[:, "Glucose_Max_Prev_Block"] = np.nan
+    new_data.loc[:, "Rapid_Insulin_Prev_Block"] = np.nan
+    new_data.loc[:, "Carbo_Prev_Block"] = np.nan
+
+    for block in new_data[["Day_Block", "Block", "Glucose_Mean_Block", "Glucose_Std_Block",
+                                        "Glucose_Min_Block", "Glucose_Max_Block", "Rapid_Insulin_Block",
+                                        "Carbo_Block"]].drop_duplicates().itertuples():
+        if counter >= offset:
+            mask = (new_data["Day_Block"] == block[1]) & (new_data["Block"] == block[2])
+            new_data.loc[mask, "Glucose_Mean_Prev_Block"] = previous[3]
+            new_data.loc[mask, "Glucose_Std_Prev_Block"] = previous[4]
+            new_data.loc[mask, "Glucose_Min_Prev_Block"] = previous[5]
+            new_data.loc[mask, "Glucose_Max_Prev_Block"] = previous[6]
+            new_data.loc[mask, "Rapid_Insulin_Prev_Block"] = previous[7]
+            new_data.loc[mask, "Carbo_Prev_Block"] = previous[8]
+
+        previous = block
+        counter += 1
 
     # Add label to each entry (Diagnosis)
     new_data.loc[:, "Diagnosis"] = new_data["Glucose_Auto"].apply(label_map)
@@ -241,6 +267,18 @@ def clean_extended_data(data):
     imp = Imputer(missing_values='NaN', strategy='mean', axis=0)
     imputed_mage = imp.fit_transform(new_data["MAGE"].values.reshape(-1, 1))
     new_data.loc[:, "MAGE"] = imputed_mage
+
+    # Delete null rows correspoding to first block of the dataset
+    new_data.dropna(inplace='True', subset=["Glucose_Mean_Prev_Block", "Glucose_Std_Prev_Block",
+                                                         "Glucose_Min_Prev_Block", "Glucose_Max_Prev_Block",
+                                                         "Rapid_Insulin_Prev_Block",
+                                                         "Carbo_Prev_Block"])
+
+    # Drop columns with information corresponding to current block
+    new_data.drop(["Glucose_Mean_Block", "Glucose_Std_Block",
+          "Glucose_Min_Block", "Glucose_Max_Block", "Rapid_Insulin_Block",
+          "Carbo_Block"], inplace=True, axis=1)
+
 
     return new_data
 

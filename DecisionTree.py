@@ -1,8 +1,9 @@
 from sklearn.tree import DecisionTreeClassifier
 from visualization import generate_graph_tree
 
+
 class DecisionTree:
-    """Class that encapsulates a model created by a decision tree and provides functions over it"""
+    """Class that contains a model created by a decision tree and provides functions over it"""
 
     def __init__(self, data, label, min_percentage_label_leaf=0.1, max_depth=5):
 
@@ -31,14 +32,22 @@ class DecisionTree:
         # Train model
         self.__model.fit(data, label)
 
-        #Generate graph
+        # Generate graph
         self.__generate_graph()
 
-        #Feature importance
-        self.feature_importances = self.__model.feature_importances_
+    @property
+    def feature_importances(self):
+        return self.__model.feature_importances_
+
+    @property
+    def graph(self):
+        return self.__graph
+
+    @property
+    def tree(self):
+        return self.__model.tree_
 
     def __generate_graph(self):
         label_name = self.label.name.split('_')[0]
         binary_labels = ["No " + label_name, label_name]
-        self.graph = generate_graph_tree(self.__model, self.data.columns, binary_labels)
-
+        self.__graph = generate_graph_tree(self.__model, self.data.columns, binary_labels)
