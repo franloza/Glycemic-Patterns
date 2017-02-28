@@ -1,6 +1,7 @@
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import cross_val_score
 from visualization import generate_graph_tree
-
+from numpy import mean
 
 class DecisionTree:
     """Class that contains a model created by a decision tree and provides functions over it"""
@@ -46,6 +47,9 @@ class DecisionTree:
     @property
     def tree(self):
         return self.__model.tree_
+
+    def cross_val_score(self, scoring, cv=10):
+        return mean(cross_val_score(self.__model, self.data, self.label, scoring=scoring, cv=cv, n_jobs=-1))
 
     def __generate_graph(self):
         label_name = self.label.name.split('_')[0]
