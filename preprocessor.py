@@ -184,7 +184,7 @@ def extend_data(data):
                                                                           .total_seconds() / 60), axis=1)
     new_data.loc[:, "Last_Meal_Hour"] = new_data["Last_Meal"].apply(lambda row: row.hour)
 
-    # Add data corresponding to the previous block
+    # Add data corresponding to the previous block (offset = 1)
     offset = 1
     counter = 0
     previous = np.nan
@@ -208,6 +208,27 @@ def extend_data(data):
             new_data.loc[mask, "Carbo_Prev_Block"] = previous[8]
 
         previous = block
+        counter += 1
+
+    # Add data corresponding to the previous day (offset = 1)
+    offset = 1
+    counter = 0
+    previous = np.nan
+    new_data.loc[:, "Glucose_Mean_Prev_Day"] = np.nan
+    new_data.loc[:, "Glucose_Std_Prev_Day"] = np.nan
+    new_data.loc[:, "Glucose_Min_Prev_Day"] = np.nan
+    new_data.loc[:, "Glucose_Max_Prev_Day"] = np.nan
+
+    for day in new_data[["Day_Block", "Glucose_Mean_Day", "Glucose_Std_Day", "Glucose_Min_Day",
+                         "Glucose_Max_Day"]].drop_duplicates().itertuples():
+        if counter >= offset:
+            mask = (new_data["Day_Block"] == day[1])
+            new_data.loc[mask, "Glucose_Mean_Prev_Day"] = previous[2]
+            new_data.loc[mask, "Glucose_Std_Prev_Day"] = previous[3]
+            new_data.loc[mask, "Glucose_Min_Prev_Day"] = previous[4]
+            new_data.loc[mask, "Glucose_Max_Prev_Day"] = previous[5]
+
+        previous = day
         counter += 1
 
     # Add label to each entry (Diagnosis)
