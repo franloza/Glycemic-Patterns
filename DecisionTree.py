@@ -52,6 +52,6 @@ class DecisionTree:
         return mean(cross_val_score(self.__model, self.data, self.label, scoring=scoring, cv=cv, n_jobs=-1))
 
     def __generate_graph(self):
-        label_name = self.label.name.split('_')[0]
+        label_name = self.label.name.replace('_',' ')
         binary_labels = ["No " + label_name, label_name]
         self.__graph = generate_graph_tree(self.__model, self.data.columns, binary_labels)

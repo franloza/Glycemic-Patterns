@@ -98,13 +98,12 @@ def define_blocks(data):
         mask = ((auto_gluc_blocks["Block"] == block_data["Block"])
                 & (auto_gluc_blocks["Day_Block"] == block_data["Day_Block"]))
         auto_gluc_blocks.loc[mask, ["Carbo_Block", "Rapid_Insulin_Block"]] = [carbo, rapid_insulin]
-        auto_gluc_blocks.loc[auto_gluc_blocks["Datetime"] >= block_data["Datetime"], "Last_Meal"] =\
+        auto_gluc_blocks.loc[auto_gluc_blocks["Datetime"] >= block_data["Datetime"], "Last_Meal"] = \
             block_data["Datetime"]
 
     # Add day and time to Block 0
     auto_gluc_blocks.loc[auto_gluc_blocks["Day_Block"].isnull(), "Day_Block"] = \
         auto_gluc_blocks["Datetime"].dt.date
-
 
     auto_gluc_blocks.sort_values(by=["Datetime", "Block"], inplace=True)
 
@@ -184,7 +183,7 @@ def extend_data(data):
                                                                           .total_seconds() / 60), axis=1)
     new_data.loc[:, "Last_Meal_Hour"] = new_data["Last_Meal"].apply(lambda row: row.hour)
 
-    # Add data corresponding to the previous block (offset = 1)
+    # Add data corresponding to the previous block (offset = 1 (block))
     offset = 1
     counter = 0
     previous = np.nan
@@ -196,8 +195,8 @@ def extend_data(data):
     new_data.loc[:, "Carbo_Prev_Block"] = np.nan
 
     for block in new_data[["Day_Block", "Block", "Glucose_Mean_Block", "Glucose_Std_Block",
-                                        "Glucose_Min_Block", "Glucose_Max_Block", "Rapid_Insulin_Block",
-                                        "Carbo_Block"]].drop_duplicates().itertuples():
+                           "Glucose_Min_Block", "Glucose_Max_Block", "Rapid_Insulin_Block",
+                           "Carbo_Block"]].drop_duplicates().itertuples():
         if counter >= offset:
             mask = (new_data["Day_Block"] == block[1]) & (new_data["Block"] == block[2])
             new_data.loc[mask, "Glucose_Mean_Prev_Block"] = previous[3]
@@ -210,7 +209,7 @@ def extend_data(data):
         previous = block
         counter += 1
 
-    # Add data corresponding to the previous day (offset = 1)
+    # Add data corresponding to the previous day (offset = 1 (days))
     offset = 1
     counter = 0
     previous = np.nan
@@ -231,8 +230,81 @@ def extend_data(data):
         previous = day
         counter += 1
 
+    #TODO: Fix previous day glucose
+    # Obtain values of glucose of previous day at the same time (Rounded to quarter)
+    # rounded_quarters = new_data[["Datetime", "Glucose_Auto"]].copy()
+    # Round datetime to nearest quarter hour
+    # rounded_quarters["Prev_Day_Datetime"] = rounded_quarters["Datetime"].apply(
+    #    lambda dt: datetime.datetime(dt.year, dt.month, dt.day, dt.hour, 15 * (dt.minute // 15)))
+
+    #joined = rounded_quarters.merge(rounded_quarters, how='left',
+    #                                left_on='Prev_Day_Datetime', right_on='Datetime',
+    #                                suffixes=('', '_Prev_Day'))
+    #new_data["Glucose_Auto_Prev_Day"] = joined["Glucose_Auto_Prev_Day"]
+
+    #print(new_data.count())
+
+    # Delete all rows that does not contain values of glucose of previous day
+    #new_data.dropna(inplace='True', subset=["Glucose_Auto_Prev_Day"])
+
+    #print(new_data.count())
+
+    # Calculate difference of glucose with previous day
+    #new_data["Delta_Glucose_Prev_Day"] = abs(
+    #    new_data["Glucose_Auto"] - new_data["Glucose_Auto_Prev_Day"])
+
     # Add label to each entry (Diagnosis)
     new_data.loc[:, "Diagnosis"] = new_data["Glucose_Auto"].apply(label_map)
+
+    # Binarize labels in a one-vs-all fashion (Severe_Hyperglycemia, Hyperglycemia, Hypoglycemia and Normal)
+    # to get binary labels
+    lb = LabelBinarizer(neg_label=0, pos_label=1, sparse_output=False)
+    lb.fit(new_data["Diagnosis"])
+    labels = pd.DataFrame(index=new_data.index)
+    for x in lb.classes_:
+        labels[x + "_Diagnosis"] = np.nan
+    labels.loc[:, [x + "_Diagnosis" for x in lb.classes_]] = lb.transform(new_data["Diagnosis"])
+
+    # Apply logical OR between hyperglycemia and severe_hyperglycemia in hyperglycemia column
+    labels["Hyperglycemia_Diagnosis"] = labels["Hyperglycemia_Diagnosis"] | labels["Severe_Hyperglycemia_Diagnosis"]
+
+    # Join labels to data
+    new_data = pd.concat([new_data, labels], axis=1, join_axes=[new_data.index])
+
+    # Group by blocks and get aggregated diagnosis for current block
+    new_columns = new_data.groupby(['Day_Block', 'Block']).agg(
+        {'Hypoglycemia_Diagnosis': logical_or, 'In_Range_Diagnosis': logical_or, 'Hyperglycemia_Diagnosis': logical_or,
+         'Severe_Hyperglycemia_Diagnosis': logical_or})
+
+    # Join aggregated data to dataset
+    new_columns.rename(columns={'Hyperglycemia_Diagnosis': 'Hyperglycemia_Diagnosis_Block',
+                                'Hypoglycemia_Diagnosis': 'Hypoglycemia_Diagnosis_Block',
+                                'In_Range_Diagnosis': 'In_Range_Diagnosis_Block',
+                                'Severe_Hyperglycemia_Diagnosis': 'Severe_Hyperglycemia_Diagnosis_Block'}, inplace=True)
+    new_columns = new_columns.reset_index(level=[0, 1])
+    new_data = pd.merge(new_data, new_columns, on=["Block", "Day_Block"], how='left')
+
+    # Add label corresponding to the next block (offset = 1)
+    offset = 1
+    counter = 0
+    next = np.nan
+    new_data.loc[:, "Hyperglycemia_Diagnosis_Next_Block"] = np.nan
+    new_data.loc[:, "Hypoglycemia_Diagnosis_Next_Block"] = np.nan
+    new_data.loc[:, "In_Range_Diagnosis_Next_Block"] = np.nan
+    new_data.loc[:, "Severe_Hyperglycemia_Diagnosis_Next_Block"] = np.nan
+
+    # Reverse iteration
+    for block in new_data[["Day_Block", "Block", "Hyperglycemia_Diagnosis_Block", "Hypoglycemia_Diagnosis_Block",
+                           "In_Range_Diagnosis_Block", "Severe_Hyperglycemia_Diagnosis_Block"]] \
+                         .drop_duplicates().iloc[::-1].itertuples():
+        if counter >= offset:
+            mask = (new_data["Day_Block"] == block[1]) & (new_data["Block"] == block[2])
+            new_data.loc[mask, "Hyperglycemia_Diagnosis_Next_Block"] = next[3]
+            new_data.loc[mask, "Hypoglycemia_Diagnosis_Next_Block"] = next[4]
+            new_data.loc[mask, "In_Range_Diagnosis_Next_Block"] = next[5]
+            new_data.loc[mask, "Severe_Hyperglycemia_Diagnosis_Next_Block"] = next[6]
+        next = block
+        counter += 1
 
     return new_data
 
@@ -246,17 +318,20 @@ def label_map(value):
     """
     hypoglycemia_threshold = 70
     hyperglycemia_threshold = 180
+    severe_hyperglycemia_threshold = 240
 
     if value < hypoglycemia_threshold:
         return 'Hypoglycemia'
     elif value > hyperglycemia_threshold:
-        return 'Hyperglycemia'
+        if value > severe_hyperglycemia_threshold:
+            return 'Severe_Hyperglycemia'
+        else:
+            return 'Hyperglycemia'
     else:
-        return 'Normal'
+        return 'In_Range'
 
 
 def clean_processed_data(data):
-
     """ Function that handle entries with NaN values produced by its division in blocks with the function
     define_blocks.
     IMPORTANT: It can cause information loss by removing entries. Don't use it to plot information
@@ -289,21 +364,47 @@ def clean_extended_data(data):
     imputed_mage = imp.fit_transform(new_data["MAGE"].values.reshape(-1, 1))
     new_data.loc[:, "MAGE"] = imputed_mage
 
+    # Infer entries with no previous day data with mean
+    imputed_cols = imp.fit_transform(
+        new_data[["Glucose_Mean_Prev_Day",
+                  "Glucose_Std_Prev_Day", "Glucose_Min_Prev_Day",
+                  "Glucose_Max_Prev_Day"]].values)
+    new_data.loc[:, ["Glucose_Mean_Prev_Day",
+                     "Glucose_Std_Prev_Day", "Glucose_Min_Prev_Day",
+                     "Glucose_Max_Prev_Day"]] = imputed_cols
+
     # Delete null rows correspoding to first block of the dataset
     new_data.dropna(inplace='True', subset=["Glucose_Mean_Prev_Block", "Glucose_Std_Prev_Block",
-                                                         "Glucose_Min_Prev_Block", "Glucose_Max_Prev_Block",
-                                                         "Rapid_Insulin_Prev_Block",
-                                                         "Carbo_Prev_Block"])
+                                            "Glucose_Min_Prev_Block", "Glucose_Max_Prev_Block",
+                                            "Rapid_Insulin_Prev_Block",
+                                            "Carbo_Prev_Block"])
 
     # Drop columns with information corresponding to current block
     new_data.drop(["Glucose_Mean_Block", "Glucose_Std_Block",
-          "Glucose_Min_Block", "Glucose_Max_Block", "Rapid_Insulin_Block",
-          "Carbo_Block"], inplace=True, axis=1)
+                   "Glucose_Min_Block", "Glucose_Max_Block", "Rapid_Insulin_Block",
+                   "Carbo_Block"], inplace=True, axis=1)
 
+    # Drop columns with information current day
+    new_data.drop(["Glucose_Mean_Day", "Glucose_Std_Day",
+                   "Glucose_Min_Day", "Glucose_Max_Day"], inplace=True, axis=1)
+
+    # Drop rows with unknown labels (Data corresponding to last block) and column labels corresponding
+    # to current entry and block
+    new_data.dropna(inplace='True', subset=["Hyperglycemia_Diagnosis_Next_Block",
+                                            "Hypoglycemia_Diagnosis_Next_Block",
+                                            "In_Range_Diagnosis_Next_Block",
+                                            "Severe_Hyperglycemia_Diagnosis_Next_Block"])
+
+    new_data.drop(["Diagnosis", "Hyperglycemia_Diagnosis",
+                   "Hypoglycemia_Diagnosis", "In_Range_Diagnosis", "Severe_Hyperglycemia_Diagnosis",
+                   "Hyperglycemia_Diagnosis_Block", "Hypoglycemia_Diagnosis_Block",
+                   "In_Range_Diagnosis_Block", "Severe_Hyperglycemia_Diagnosis_Block"], inplace=True,
+                  axis=1)
 
     return new_data
 
-def prepare_to_decision_trees (data):
+
+def prepare_to_decision_trees(data):
     """ Function that returns the data and the labels ready to create a Decision tree
         IMPORTANT: It can cause information loss by removing entries. Don't use it to plot information
 
@@ -311,23 +412,21 @@ def prepare_to_decision_trees (data):
         :return: data and labels to create DecisionTree object
         """
 
+    # Get labels
+    labels = data[["Hyperglycemia_Diagnosis_Next_Block",
+                  "Hypoglycemia_Diagnosis_Next_Block", "In_Range_Diagnosis_Next_Block",
+                  "Severe_Hyperglycemia_Diagnosis_Next_Block"]]
+
     # Remove columns that cannot be passed to the estimator
     new_data = data.drop(["Datetime", "Day_Block", "Last_Meal"], axis=1)
 
-    # Remove columns that contains information that should not be used to discover patterns.
-    # i.e. current glucose level
-    new_data.drop("Glucose_Auto", axis=1, inplace=True)
-
-    # Binarize labels in a one-vs-all fashion (Hyperglycemia, Hypoglycemia and Normal)
-    # to get binary labels
-    lb = LabelBinarizer(neg_label=0, pos_label=1, sparse_output=False)
-    lb.fit(data["Diagnosis"])
-    labels = pd.DataFrame(index=data.index)
-    for x in lb.classes_:
-        labels[x + "_Diagnosis"] = np.nan
-    labels.loc[:, [x + "_Diagnosis" for x in lb.classes_]] = lb.transform(data["Diagnosis"])
-
-    #Delete diagnosis columnn (label)
-    new_data.drop("Diagnosis", axis=1, inplace=True)
+    # Delete label columns
+    new_data.drop(["Hyperglycemia_Diagnosis_Next_Block",
+                   "Hypoglycemia_Diagnosis_Next_Block", "In_Range_Diagnosis_Next_Block",
+                   "Severe_Hyperglycemia_Diagnosis_Next_Block"], inplace=True, axis=1)
 
     return [new_data, labels]
+
+
+def logical_or(x):
+    return 1 if np.sum(x) > 0 else 0
