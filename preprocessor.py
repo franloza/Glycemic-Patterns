@@ -217,41 +217,40 @@ def extend_data(data):
     new_data.loc[:, "Glucose_Std_Prev_Day"] = np.nan
     new_data.loc[:, "Glucose_Min_Prev_Day"] = np.nan
     new_data.loc[:, "Glucose_Max_Prev_Day"] = np.nan
+    new_data.loc[:, "MAGE_Prev_Day"] = np.nan
 
     for day in new_data[["Day_Block", "Glucose_Mean_Day", "Glucose_Std_Day", "Glucose_Min_Day",
-                         "Glucose_Max_Day"]].drop_duplicates().itertuples():
+                         "Glucose_Max_Day","MAGE"]].drop_duplicates().itertuples():
         if counter >= offset:
             mask = (new_data["Day_Block"] == day[1])
             new_data.loc[mask, "Glucose_Mean_Prev_Day"] = previous[2]
             new_data.loc[mask, "Glucose_Std_Prev_Day"] = previous[3]
             new_data.loc[mask, "Glucose_Min_Prev_Day"] = previous[4]
             new_data.loc[mask, "Glucose_Max_Prev_Day"] = previous[5]
+            new_data.loc[mask, "MAGE_Prev_Day"] = previous[6]
 
         previous = day
         counter += 1
 
-    #TODO: Fix previous day glucose
     # Obtain values of glucose of previous day at the same time (Rounded to quarter)
-    # rounded_quarters = new_data[["Datetime", "Glucose_Auto"]].copy()
+    rounded_quarters = new_data[["Datetime", "Glucose_Auto"]].copy()
     # Round datetime to nearest quarter hour
-    # rounded_quarters["Prev_Day_Datetime"] = rounded_quarters["Datetime"].apply(
-    #    lambda dt: datetime.datetime(dt.year, dt.month, dt.day, dt.hour, 15 * (dt.minute // 15)))
+    rounded_quarters["Datetime"] = rounded_quarters["Datetime"].apply(
+        lambda dt: ceil(dt))
+    rounded_quarters[["Prev_Day_Datetime"]] = rounded_quarters[["Datetime"]].apply(
+        lambda row: row - datetime.timedelta(days=1))
 
-    #joined = rounded_quarters.merge(rounded_quarters, how='left',
-    #                                left_on='Prev_Day_Datetime', right_on='Datetime',
-    #                                suffixes=('', '_Prev_Day'))
-    #new_data["Glucose_Auto_Prev_Day"] = joined["Glucose_Auto_Prev_Day"]
-
-    #print(new_data.count())
+    joined = rounded_quarters.merge(rounded_quarters, how='left',
+                                    left_on='Prev_Day_Datetime', right_on='Datetime',
+                                    suffixes=('', '_Prev_Day'))
+    new_data["Glucose_Auto_Prev_Day"] = joined["Glucose_Auto_Prev_Day"]
 
     # Delete all rows that does not contain values of glucose of previous day
-    #new_data.dropna(inplace='True', subset=["Glucose_Auto_Prev_Day"])
-
-    #print(new_data.count())
+    new_data.dropna(inplace='True', subset=["Glucose_Auto_Prev_Day"])
 
     # Calculate difference of glucose with previous day
-    #new_data["Delta_Glucose_Prev_Day"] = abs(
-    #    new_data["Glucose_Auto"] - new_data["Glucose_Auto_Prev_Day"])
+    new_data["Delta_Glucose_Prev_Day"] = abs(
+        new_data["Glucose_Auto"] - new_data["Glucose_Auto_Prev_Day"])
 
     # Add label to each entry (Diagnosis)
     new_data.loc[:, "Diagnosis"] = new_data["Glucose_Auto"].apply(label_map)
@@ -308,6 +307,12 @@ def extend_data(data):
 
     return new_data
 
+def ceil(dt):
+    if dt.minute % 15 or dt.second:
+        return dt + datetime.timedelta(minutes = 15 - dt.minute % 15,
+                                       seconds = -(dt.second % 60))
+    else:
+        return dt
 
 def label_map(value):
     """ Function that determines the diagnosis according to the Glucose level of an entry.
@@ -368,10 +373,10 @@ def clean_extended_data(data):
     imputed_cols = imp.fit_transform(
         new_data[["Glucose_Mean_Prev_Day",
                   "Glucose_Std_Prev_Day", "Glucose_Min_Prev_Day",
-                  "Glucose_Max_Prev_Day"]].values)
+                  "Glucose_Max_Prev_Day", "MAGE_Prev_Day"]].values)
     new_data.loc[:, ["Glucose_Mean_Prev_Day",
                      "Glucose_Std_Prev_Day", "Glucose_Min_Prev_Day",
-                     "Glucose_Max_Prev_Day"]] = imputed_cols
+                     "Glucose_Max_Prev_Day","MAGE_Prev_Day"]] = imputed_cols
 
     # Delete null rows correspoding to first block of the dataset
     new_data.dropna(inplace='True', subset=["Glucose_Mean_Prev_Block", "Glucose_Std_Prev_Block",
@@ -386,7 +391,7 @@ def clean_extended_data(data):
 
     # Drop columns with information current day
     new_data.drop(["Glucose_Mean_Day", "Glucose_Std_Day",
-                   "Glucose_Min_Day", "Glucose_Max_Day"], inplace=True, axis=1)
+                   "Glucose_Min_Day", "Glucose_Max_Day","MAGE"], inplace=True, axis=1)
 
     # Drop rows with unknown labels (Data corresponding to last block) and column labels corresponding
     # to current entry and block
