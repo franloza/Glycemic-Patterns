@@ -63,7 +63,12 @@ class Translator:
         'es mayor que': '>',
         'es igual que': '=',
         'es mayor o igual que': '>=',
-        'es menor o igual que':'<='
+        'es menor o igual que': '<=',
+        'Reglas': 'Rules',
+        'Muestras': 'Samples',
+        'Impureza': 'Impurity',
+        'Número de muestras positivas': 'Number_Pos',
+        'Número de muestras negativas': 'Number_Neg'
         })
 
     __en_to_column_dict = bidict({

@@ -20,5 +20,5 @@ class Rule:
 
     def __str__(self):
         rule_list = self.__translator.translate_to_language([self.feature, self.operator])
-        rule_list.append('{:.4f}'.format(self.threshold))
+        rule_list.append('{:.4g}'.format(self.threshold))
         return " ".join(rule_list)
