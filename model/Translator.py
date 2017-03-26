@@ -55,20 +55,22 @@ class Translator:
         'Nivel de glucosa máximo del día anterior':'Glucose_Max_Prev_Day',
         'Nivel de glucosa 24 horas antes':'Glucose_Auto_Prev_Day',
         'Diferencia del nivel de glucosa actual con 24 horas antes':'Delta_Glucose_Prev_Day',
+        'Variabilidad glucémica (MAGE) del día anterior': 'MAGE_Prev_Day',
         'Diagnóstico de hiperglucemia en siguiente bloque':'Hyperglycemia_Diagnosis_Next_Block',
         'Diagnóstico de hipoglucemia en siguiente bloque':'Hypoglycemia_Diagnosis_Next_Block',
         'Diagnóstico en rango en siguiente bloque':'In_Range_Diagnosis_Next_Block',
         'Diagnóstico de hiperglucemia severa en siguiente bloque':'Severe_Hyperglycemia_Diagnosis_Next_Block',
+        'Reglas': 'Rules',
+        'Muestras': 'Samples',
+        'Impureza': 'Impurity',
+        'Número de muestras positivas': 'Number_Pos',
+        'Número de muestras negativas': 'Number_Neg',
         'es menor que': '<',
         'es mayor que': '>',
         'es igual que': '=',
         'es mayor o igual que': '>=',
         'es menor o igual que': '<=',
-        'Reglas': 'Rules',
-        'Muestras': 'Samples',
-        'Impureza': 'Impurity',
-        'Número de muestras positivas': 'Number_Pos',
-        'Número de muestras negativas': 'Number_Neg'
+        'y': 'and'
         })
 
     __en_to_column_dict = bidict({
