@@ -40,6 +40,8 @@ class Translator:
         'Día (Definido por bloques)': 'Day_Block',
         'Día y hora de la última comida': 'Last_Meal',
         'Bloque solapado': 'Overlapped_Block',
+        'El bloque está solapado': 'Overlapped_Block_T',
+        'El bloque no está solapado': 'Overlapped_Block_F',
         'Variabilidad glucémica (MAGE)': 'MAGE',
         'Día de la semana': 'Weekday',
         'Minutos transcurridos desde la última comida':'Minutes_Last_Meal',

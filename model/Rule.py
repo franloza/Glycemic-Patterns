@@ -19,6 +19,16 @@ class Rule:
         self.__translator = translator
 
     def __str__(self):
-        rule_list = self.__translator.translate_to_language([self.feature, self.operator])
-        rule_list.append('{:.4g}'.format(self.threshold))
+        if self.is_boolean():
+            suffix = '_T' if self.operator == '>' else '_F'
+            rule_list = self.__translator.translate_to_language([self.feature + suffix])
+        else:
+            rule_list = self.__translator.translate_to_language([self.feature, self.operator])
+            rule_list.append('{:.4g}'.format(self.threshold))
         return " ".join(rule_list)
+
+    def is_boolean(self):
+        """ Method that returns if the feature of the rule can be expressed as either true or false
+        :return: True if the feature is boolean
+        """
+        return self.feature == 'Overlapped_Block'

@@ -69,6 +69,6 @@ def app(filepath, max_impurity=0, language="es", output_path=None):
     # Severe Hyperglycemia patterns
     patterns = severe_dt.get_patterns(max_impurity=max_impurity)
     if patterns:
-        print('{0}'.format(terms[1].center(50, '=')))
+        print('{0}'.format(terms[2].center(50, '=')))
         for pattern in patterns:
             print(pattern, end='\n\n')
