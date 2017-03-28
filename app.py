@@ -9,7 +9,9 @@ if module_path not in sys.path:
 
 from model.Translator import Translator
 from model.DecisionTree import DecisionTree
+from IPython.core.display import display, HTML
 import preprocessor as pp
+
 
 # Add modules path
 module_path = os.path.abspath(os.path.join('..'))
@@ -29,6 +31,13 @@ def app(filepath, max_impurity=0, language="es", output_path=None):
                            date_parser=lambda x: pd.to_datetime(x, format="%Y/%m/%d %H:%M"))
     # Translate column names
     raw_data.columns = (to_col(raw_data.columns))
+
+    # Check anomalies in the data
+    try:
+        pp.check_data(raw_data)
+    except Exception as e:
+        print_error(e)
+        sys.exit(0)
 
     # Divide in blocks, extend dataset and clean data
     block_data = pp.define_blocks(raw_data)
@@ -72,3 +81,6 @@ def app(filepath, max_impurity=0, language="es", output_path=None):
         print('{0}'.format(terms[2].center(50, '=')))
         for pattern in patterns:
             print(pattern, end='\n\n')
+
+def print_error (message):
+    display(HTML('{0}{1}{2}'.format('<div class="alert alert-block alert-danger">', message, '</div>')))

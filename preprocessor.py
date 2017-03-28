@@ -2,7 +2,22 @@ import numpy as np
 import datetime
 import pandas as pd
 import peakdetect
+import warnings
 from sklearn.preprocessing import LabelBinarizer, Imputer
+from IPython.core.display import display, HTML
+
+
+def check_data(data):
+    # Check if there are any carbo values
+    if 5 not in data['Register_Type'].unique():
+        raise ValueError('There are no registers of carbohydrates (Register type 5)')
+
+    # Warn if the mean of carbohydrate entries per day is too low
+    carbo_registers = data['Register_Type'].value_counts().loc[5]
+    number_of_days = (data.iloc[-1]['Datetime'] - data.iloc[0]['Datetime']).days
+    if (carbo_registers / number_of_days) < 1:
+        warnings.warn("The number of carbohydrate registers (Type 5) is less than 1 per day. "
+                      "Patterns may not be accurate")
 
 
 def define_blocks(data):
@@ -20,10 +35,6 @@ def define_blocks(data):
     # Get name of carbo column
     carbo_column = next(column_name for column_name in data.columns if column_name in ['Carbo_U', 'Carbo_G'])
     carbo_block_column = 'Carbo_Block_' + carbo_column.split('_')[-1]
-
-    #Check if there are any carbo values
-    if data[carbo_column].isnull().all():
-        raise ValueError ('There are no registers of carbohydrates (Register type 5)')
 
     # Get information of automatic measurement of glucose
     auto_gluc_blocks = data[data["Register_Type"] == 0].drop(
@@ -48,10 +59,6 @@ def define_blocks(data):
     insulin_data['Rapid_Insulin'] = insulin_data[['Rapid_Insulin', 'Rapid_Insulin_No_Val']].fillna(0).sum(axis=1)
     insulin_data = insulin_data.drop(['Rapid_Insulin_No_Val'], axis=1)
 
-    # Join insuline and carbohydrates data
-    carbo_insulin_data = pd.merge(carbo_data, insulin_data, how='left', on="Datetime").fillna(0)
-
-
     # Initialize new columns
     auto_gluc_blocks.loc[:, "Hour"] = auto_gluc_blocks["Datetime"].dt.hour
     auto_gluc_blocks.loc[:, "Block"] = 0
@@ -60,12 +67,12 @@ def define_blocks(data):
     auto_gluc_blocks.loc[:, "Overlapped_Block"] = False
     auto_gluc_blocks.loc[:, carbo_block_column] = 0
     auto_gluc_blocks.loc[:, "Rapid_Insulin_Block"] = 0
-    carbo_insulin_data.loc[:, "Block"] = 0
-    carbo_insulin_data.loc[:, "Day_Block"] = np.nan
+    carbo_data.loc[:, "Block"] = 0
+    carbo_data.loc[:, "Day_Block"] = np.nan
 
     # Iterate over days and define their corresponding blocks from 0 to n (Block 0 corresponds to no block)
     for date_i in dates:
-        carbo_day = carbo_insulin_data[carbo_insulin_data["Datetime"].dt.date == date_i]
+        carbo_day = carbo_data[carbo_data["Datetime"].dt.date == date_i]
         block_idx = 1
         # Iterate over all the occurences of carbohydrates in a day
         for index, mid_block in carbo_day.iterrows():
@@ -74,7 +81,11 @@ def define_blocks(data):
                                            + datetime.timedelta(minutes=x)
                                            for x in range(0, int((pre_time_interval + post_time_interval) * 60))))
             # Define block if empty
-            rapid_insulin = mid_block["Rapid_Insulin"]
+            rapid_insulin = 0
+            for _, insulin_row in insulin_data.iterrows():
+                if (insulin_row["Datetime"] in block_time_window.tolist()):
+                    rapid_insulin += insulin_row['Rapid_Insulin']
+
             carbo = mid_block[carbo_column]
             auto_gluc_blocks.loc[
                 (auto_gluc_blocks["Datetime"].isin(block_time_window))
@@ -82,10 +93,11 @@ def define_blocks(data):
                                                      "Rapid_Insulin_Block"]] \
                 = [block_idx, mid_block_datetime.date(), carbo, rapid_insulin]
 
-            # Associate block to each insulin and carbohydrates entry to use in overlapped blocks
-            mask = carbo_insulin_data["Datetime"] == mid_block_datetime
-            carbo_insulin_data.loc[mask, "Block"] = block_idx
-            carbo_insulin_data.loc[mask, "Day_Block"] = mid_block_datetime.date()
+            # Associate block and insulin value to each carbohydrates entry to use in overlapped blocks
+            mask = carbo_data["Datetime"] == mid_block_datetime
+            carbo_data.loc[mask, "Block"] = block_idx
+            carbo_data.loc[mask, "Day_Block"] = mid_block_datetime.date()
+            carbo_data.loc[mask, "Rapid_Insulin"] = rapid_insulin
 
             # Define and add entry with overlapped block
             overlapped_mask = (auto_gluc_blocks["Datetime"].isin(block_time_window)) \
@@ -101,7 +113,7 @@ def define_blocks(data):
             block_idx += 1
 
     # Update hour of the block, time of last meal, insulin and carbo information of the overlapped blocks
-    for index, block_data in carbo_insulin_data.iterrows():
+    for index, block_data in carbo_data.iterrows():
         rapid_insulin = block_data["Rapid_Insulin"]
         carbo = block_data[carbo_column]
         mask = ((auto_gluc_blocks["Block"] == block_data["Block"])
@@ -191,10 +203,9 @@ def extend_data(data):
                                                                           .total_seconds() / 60), axis=1)
     new_data.loc[:, "Last_Meal_Hour"] = new_data["Last_Meal"].apply(lambda row: row.hour)
 
-
     # Get Carbo_Block and Carbo_Prev_Block column name
     carbo_block_column = next(column_name for column_name in data.columns
-                                    if column_name in ['Carbo_Block_U', 'Carbo_Block_G'])
+                              if column_name in ['Carbo_Block_U', 'Carbo_Block_G'])
     carbo_prev_block_column = 'Carbo_Prev_Block_' + carbo_block_column.split('_')[-1]
 
     # Add data corresponding to the previous block (offset = 1 (block))
@@ -234,7 +245,7 @@ def extend_data(data):
     new_data.loc[:, "MAGE_Prev_Day"] = np.nan
 
     for day in new_data[["Day_Block", "Glucose_Mean_Day", "Glucose_Std_Day", "Glucose_Min_Day",
-                         "Glucose_Max_Day","MAGE"]].drop_duplicates().itertuples():
+                         "Glucose_Max_Day", "MAGE"]].drop_duplicates().itertuples():
         if counter >= offset:
             mask = (new_data["Day_Block"] == day[1])
             new_data.loc[mask, "Glucose_Mean_Prev_Day"] = previous[2]
@@ -321,12 +332,14 @@ def extend_data(data):
 
     return new_data
 
+
 def ceil(dt):
     if dt.minute % 15 or dt.second:
-        return dt + datetime.timedelta(minutes = 15 - dt.minute % 15,
-                                       seconds = -(dt.second % 60))
+        return dt + datetime.timedelta(minutes=15 - dt.minute % 15,
+                                       seconds=-(dt.second % 60))
     else:
         return dt
+
 
 def label_map(value):
     """ Function that determines the diagnosis according to the Glucose level of an entry.
@@ -395,7 +408,7 @@ def clean_extended_data(data):
                   "Glucose_Max_Prev_Day", "MAGE_Prev_Day"]].values)
     new_data.loc[:, ["Glucose_Mean_Prev_Day",
                      "Glucose_Std_Prev_Day", "Glucose_Min_Prev_Day",
-                     "Glucose_Max_Prev_Day","MAGE_Prev_Day"]] = imputed_cols
+                     "Glucose_Max_Prev_Day", "MAGE_Prev_Day"]] = imputed_cols
 
     # Delete null rows correspoding to first block of the dataset
     new_data.dropna(inplace='True', subset=["Glucose_Mean_Prev_Block", "Glucose_Std_Prev_Block",
@@ -410,7 +423,7 @@ def clean_extended_data(data):
 
     # Drop columns with information current day
     new_data.drop(["Glucose_Mean_Day", "Glucose_Std_Day",
-                   "Glucose_Min_Day", "Glucose_Max_Day","MAGE"], inplace=True, axis=1)
+                   "Glucose_Min_Day", "Glucose_Max_Day", "MAGE"], inplace=True, axis=1)
 
     # Drop rows with unknown labels (Data corresponding to last block) and column labels corresponding
     # to current entry and block
@@ -438,8 +451,8 @@ def prepare_to_decision_trees(data):
 
     # Get labels
     labels = data[["Hyperglycemia_Diagnosis_Next_Block",
-                  "Hypoglycemia_Diagnosis_Next_Block", "In_Range_Diagnosis_Next_Block",
-                  "Severe_Hyperglycemia_Diagnosis_Next_Block"]]
+                   "Hypoglycemia_Diagnosis_Next_Block", "In_Range_Diagnosis_Next_Block",
+                   "Severe_Hyperglycemia_Diagnosis_Next_Block"]]
 
     # Remove columns that cannot be passed to the estimator
     new_data = data.drop(["Datetime", "Day_Block", "Last_Meal"], axis=1)
@@ -454,3 +467,8 @@ def prepare_to_decision_trees(data):
 
 def logical_or(x):
     return 1 if np.sum(x) > 0 else 0
+
+def _warning(message, category = UserWarning, filename = '', lineno = -1):
+    display(HTML('{0}{1}{2}'.format('<div class="alert alert-block alert-warning">', message, '</div>')))
+
+warnings.showwarning = _warning
