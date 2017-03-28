@@ -1,0 +1,16 @@
+# PyCharm
+.idea/
+
+# Jupyter Notebook
+**/.ipynb_checkpoints/
+
+# Python
+**/__pycache__/
+
+# Data files
+**/sample.txt
+**/extended.csv
+
+# Notebooks
+notebooks/data/
+notebooks/patients/*.png

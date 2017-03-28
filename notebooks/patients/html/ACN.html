@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" />
-<title>CAA</title>
+<title>ACN</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
@@ -11746,14 +11746,23 @@ div#notebook {
   <div tabindex="-1" id="notebook" class="border-box-sizing">
     <div class="container" id="notebook-container">
 
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Patterns-report">Patterns report<a class="anchor-link" href="#Patterns-report">&#182;</a></h1><h3 id="Patient-ID:-ACN">Patient ID: ACN<a class="anchor-link" href="#Patient-ID:-ACN">&#182;</a></h3><h3 id="Dates:-31/03/2016---14/04/2016">Dates: 31/03/2016 - 14/04/2016<a class="anchor-link" href="#Dates:-31/03/2016---14/04/2016">&#182;</a></h3>
+</div>
+</div>
+</div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[1]:</div>
+<div class="prompt input_prompt">In&nbsp;[2]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">app</span> <span class="k">import</span> <span class="n">app</span>
 <span class="kn">from</span> <span class="nn">IPython.display</span> <span class="k">import</span> <span class="n">Image</span>
-<span class="n">app</span><span class="p">(</span><span class="s1">&#39;data/CAA_20160907_20160922_FREE_STYLE.txt&#39;</span><span class="p">,</span> <span class="n">max_impurity</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">output_path</span><span class="o">=</span><span class="s2">&quot;notebooks/patients/CAA&quot;</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s1">&#39;es&#39;</span><span class="p">)</span>
+<span class="n">app</span><span class="p">(</span><span class="s1">&#39;data/ACN_20160331_20160414_FREE_STYLE.txt&#39;</span><span class="p">,</span> <span class="n">max_impurity</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">output_path</span><span class="o">=</span><span class="s2">&quot;notebooks/patients&quot;</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s1">&#39;es&#39;</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -11768,55 +11777,33 @@ div#notebook {
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>============Patrones de hiperglucemia=============
 Reglas:
-	Nivel de glucosa máximo del bloque anterior es menor o igual que 175.5
-	Carbohidratos (raciones) del bloque anterior es menor o igual que 2.25
-Muestras: 169 (10.05%)
-Impureza: 0.06848
-Número de muestras positivas: 163
-Número de muestras negativas: 6
-
-
-Reglas:
-	Nivel de glucosa máximo del bloque anterior es mayor que 175.5 y es menor o igual que 277
-	Carbohidratos (raciones) del bloque anterior es menor o igual que 2.25
-Muestras: 516 (30.68%)
+	Nivel de glucosa máximo del día anterior es mayor que 192
+	Desviación estandar del nivel de glucosa del bloque anterior es menor o igual que 40.99
+	Nivel de glucosa máximo del bloque anterior es menor o igual que 234.5
+	Desviación estandar del nivel de glucosa del día anterior es menor o igual que 40.95
+	Media del nivel de glucosa del bloque anterior es menor o igual que 145.3
+Muestras: 210 (10.49%)
 Impureza: 0
-Número de muestras positivas: 516
+Número de muestras positivas: 210
 Número de muestras negativas: 0
 
 
 Reglas:
-	Desviación estandar del nivel de glucosa del día anterior es menor o igual que 56.68
-	Carbohidratos (raciones) del bloque anterior es mayor que 2.25
-	Desviación estandar del nivel de glucosa del bloque anterior es mayor que 37.49
-Muestras: 200 (11.89%)
-Impureza: 0.1128
-Número de muestras positivas: 188
-Número de muestras negativas: 12
+	Nivel de glucosa máximo del bloque anterior es mayor que 234.5
+Muestras: 210 (10.49%)
+Impureza: 0.2024
+Número de muestras positivas: 186
+Número de muestras negativas: 24
 
 
 =============Patrones de hipoglucemia=============
 Reglas:
-	Bloque solapado es mayor que 0.5
-	Desviación estandar del nivel de glucosa del día anterior es mayor que 62.7
-	Nivel de glucosa máximo del bloque anterior es mayor que 190.5
-	Nivel de glucosa mínimo del bloque anterior es mayor que 57.5
-	Desviación estandar del nivel de glucosa del bloque anterior es mayor que 20.68
-Muestras: 180 (10.70%)
-Impureza: 0.1888
-Número de muestras positivas: 161
-Número de muestras negativas: 19
-
-
-=============Patrones de hipoglucemia=============
-Reglas:
-	Nivel de glucosa máximo del bloque anterior es menor o igual que 219
-	Desviación estandar del nivel de glucosa del bloque anterior es mayor que 25.97
-	Nivel de glucosa mínimo del día anterior es menor o igual que 58.5
-Muestras: 266 (15.81%)
-Impureza: 0.1262
-Número de muestras positivas: 248
-Número de muestras negativas: 18
+	Nivel de glucosa máximo del bloque anterior es mayor que 138 y es menor o igual que 208.5
+	Variabilidad glucémica (MAGE) del día anterior es mayor que 75
+Muestras: 687 (34.33%)
+Impureza: 0
+Número de muestras positivas: 687
+Número de muestras negativas: 0
 
 
 </pre>
