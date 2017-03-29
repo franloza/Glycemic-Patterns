@@ -69,6 +69,9 @@ class DecisionTree:
         children_right = self.tree.children_right
         num_records = self.tree.n_node_samples[0]
 
+        if n_nodes == 1:
+            raise ValueError("The decision tree only consists of a root node. Patterns can't be defined")
+
         are_leaves = np.zeros(shape=n_nodes, dtype=bool)
         stack = []
         decisions = []

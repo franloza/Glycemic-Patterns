@@ -12,7 +12,6 @@ from model.DecisionTree import DecisionTree
 from IPython.core.display import display, HTML
 import preprocessor as pp
 
-
 # Add modules path
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
@@ -25,28 +24,42 @@ def app(filepath, max_impurity=0, language="es", output_path=None):
     to_lang = translator.translate_to_language
     to_col = translator.translate_to_column
 
-    # Load data
-    raw_data = pd.read_csv(filepath, header=0, skiprows=1, delimiter="\t", index_col=0, usecols=list(range(0, 9)),
-                           parse_dates=to_lang(["Datetime"]), decimal=",",
-                           date_parser=lambda x: pd.to_datetime(x, format="%Y/%m/%d %H:%M"))
-    # Translate column names
-    raw_data.columns = (to_col(raw_data.columns))
+    dataset = pd.DataFrame()
 
-    # Check anomalies in the data
-    try:
-        pp.check_data(raw_data)
-    except Exception as e:
-        print_error(e)
-        sys.exit(0)
+    # Check if is a list of files
+    if not isinstance(filepath, (list, tuple)):
+        paths = [filepath]
+    else:
+        paths = filepath
 
-    # Divide in blocks, extend dataset and clean data
-    block_data = pp.define_blocks(raw_data)
-    cleaned_block_data = pp.clean_processed_data(block_data)
-    extended_data = pp.extend_data(cleaned_block_data)
-    cleaned_extended_data = pp.clean_extended_data(extended_data)
+    # Preprocess every data file
+    for path in paths:
+
+        # Load data
+        raw_data = pd.read_csv(path, header=0, skiprows=1, delimiter="\t", index_col=0, usecols=list(range(0, 9)),
+                               parse_dates=to_lang(["Datetime"]), decimal=",",
+                               date_parser=lambda x: pd.to_datetime(x, format="%Y/%m/%d %H:%M"))
+        # Translate column names
+        raw_data.columns = (to_col(raw_data.columns))
+
+        # Check anomalies in the data
+        try:
+            pp.check_data(raw_data)
+        except Exception as e:
+            print_error(e)
+            sys.exit(0)
+
+        # Divide in blocks, extend dataset and clean data
+        block_data = pp.define_blocks(raw_data)
+        cleaned_block_data = pp.clean_processed_data(block_data)
+        extended_data = pp.extend_data(cleaned_block_data)
+        cleaned_extended_data = pp.clean_extended_data(extended_data)
+
+        # Append to dataset
+        dataset = dataset.append(cleaned_extended_data, ignore_index=True)
 
     # Create decision trees
-    [data, labels] = pp.prepare_to_decision_trees(cleaned_extended_data)
+    [data, labels] = pp.prepare_to_decision_trees(dataset)
     hyper_dt = DecisionTree(data, labels["Hyperglycemia_Diagnosis_Next_Block"])
     hypo_dt = DecisionTree(data, labels["Hypoglycemia_Diagnosis_Next_Block"])
     severe_dt = DecisionTree(data, labels["Severe_Hyperglycemia_Diagnosis_Next_Block"])
@@ -62,25 +75,35 @@ def app(filepath, max_impurity=0, language="es", output_path=None):
                                               'Severe_Hyperglycemia_Patterns'])
 
     # Hyperglycemia patterns
-    patterns = hyper_dt.get_patterns(max_impurity=max_impurity)
-    if patterns:
-        print('{0}'. format(terms[0].center(50, '=')))
-        for pattern in patterns:
-            print(pattern, end='\n\n')
+    try:
+        patterns = hyper_dt.get_patterns(max_impurity=max_impurity)
+        if patterns:
+            print('{0}'.format(terms[0].center(50, '=')))
+            for pattern in patterns:
+                print(pattern, end='\n\n')
+    except Exception as e:
+        print_error('{0} : {1}'.format(terms[0], e))
 
     # Hypoglycemia patterns
-    patterns = hypo_dt.get_patterns(max_impurity=max_impurity)
-    if patterns:
-        print('{0}'.format(terms[1].center(50, '=')))
-        for pattern in patterns:
-            print(pattern, end='\n\n')
+    try:
+        patterns = hypo_dt.get_patterns(max_impurity=max_impurity)
+        if patterns:
+            print('{0}'.format(terms[1].center(50, '=')))
+            for pattern in patterns:
+                print(pattern, end='\n\n')
+    except Exception as e:
+        print_error('{0} : {1}'.format(terms[1], e))
 
     # Severe Hyperglycemia patterns
-    patterns = severe_dt.get_patterns(max_impurity=max_impurity)
-    if patterns:
-        print('{0}'.format(terms[2].center(50, '=')))
-        for pattern in patterns:
-            print(pattern, end='\n\n')
+    try:
+        patterns = severe_dt.get_patterns(max_impurity=max_impurity)
+        if patterns:
+            print('{0}'.format(terms[2].center(50, '=')))
+            for pattern in patterns:
+                print(pattern, end='\n\n')
+    except Exception as e:
+        print_error('{0} : {1}'.format(terms[2], e))
 
-def print_error (message):
+
+def print_error(message):
     display(HTML('{0}{1}{2}'.format('<div class="alert alert-block alert-danger">', message, '</div>')))

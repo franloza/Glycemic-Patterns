@@ -8,9 +8,13 @@ from IPython.core.display import display, HTML
 
 
 def check_data(data):
-    # Check if there are any carbo values
+    # Raise exception if there are no carbo values
     if 5 not in data['Register_Type'].unique():
         raise ValueError('There are no registers of carbohydrates (Register type 5)')
+
+    # Raise exception if the data contain periods of time of more than one day without data
+    if (data["Datetime"].diff() > datetime.timedelta(days=1)).any():
+        raise ValueError('There are periods of time of more than one day without data')
 
     # Warn if the mean of carbohydrate entries per day is too low
     carbo_registers = data['Register_Type'].value_counts().loc[5]
@@ -18,6 +22,8 @@ def check_data(data):
     if (carbo_registers / number_of_days) < 1:
         warnings.warn("The number of carbohydrate registers (Type 5) is less than 1 per day. "
                       "Patterns may not be accurate")
+
+
 
 
 def define_blocks(data):
