@@ -8,7 +8,7 @@ class Pattern:
 
     def __init__(self, rules, num_records, samples, impurity, number_pos, number_neg, translator=Translator()):
 
-        """Constructor for Pattern"""
+        """Initializer for Pattern"""
         if not all(isinstance(item, Rule) for item in rules):
             TypeError("rules must be composed of Rule objects")
         if samples < 0:

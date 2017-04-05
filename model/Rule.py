@@ -5,7 +5,7 @@ class Rule:
 
     def __init__(self, feature, operator,threshold, translator=Translator()):
 
-        """Constructor for Rule"""
+        """Initializer for Rule"""
         if not feature:
             raise ValueError("feature cannot be empty")
         if operator not in ['>', '<', '>=', '<=', '=']:

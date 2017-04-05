@@ -6,7 +6,7 @@ class Translator:
     __dictionary = bidict()
 
     def __init__(self, language="es"):
-        """Constructor for Translator"""
+        """Initializer for Translator"""
         dict_mapper = {
             'es': self.__es_to_column_dict,
             'en': self.__en_to_column_dict

@@ -12,7 +12,7 @@ class DecisionTree:
 
     def __init__(self, data, label, min_percentage_label_leaf=0.1, max_depth=5, translator=Translator()):
 
-        """Constructor for DecisionTree"""
+        """Initializer for DecisionTree"""
         if data.empty:
             raise ValueError("data cannot be empty")
         if len(label.shape) > 1 and label.shape[1] > 1:
@@ -44,10 +44,6 @@ class DecisionTree:
     @property
     def feature_importances(self):
         return self.__model.feature_importances_
-
-    @property
-    def graph(self):
-        return self.__graph
 
     @property
     def tree(self):
@@ -104,7 +100,7 @@ class DecisionTree:
     def __generate_graph(self):
         label_name = self.label.name.replace('_', ' ')
         binary_labels = ["No " + label_name, label_name]
-        self.__graph = generate_graph_tree(self.__model, self.data.columns, binary_labels)
+        self.graph = generate_graph_tree(self.__model, self.data.columns, binary_labels)
 
     def __get_decisions(self, children_left, children_right, decisions, stack, node_id, are_leaves):
         """
