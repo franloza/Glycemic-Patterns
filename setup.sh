@@ -12,3 +12,8 @@ rm -rf pydot
 
 #Install GraphViz
 conda install -c anaconda graphviz=2.38.0
+
+#Jinja2 and WeasyPrint
+pip install Jinja2
+pip install WeasyPrint
+

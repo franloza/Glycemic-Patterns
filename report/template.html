@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{{ title }}{% endblock %}</title>
+</head>
+<body>
+    {% block body %}
+        {% if hyperglycemia_patterns is defined %}
+        <div>
+            <h2> {{ hyperglycemia_patterns_title }}</h2>
+            <p>
+                <ul>
+                  {% for pattern in hyperglycemia_patterns %}
+                    {% for rule in pattern.rules %}
+                        <li>{{ rule }}</li>
+                     {% endfor %}
+                  {% endfor %}
+                </ul>
+            </p>
+        </div>
+        {% endif %}
+
+        {% if hypoglycemia_patterns is defined %}
+        <div>
+            <h2> {{ hypoglycemia_patterns_title }}</h2>
+            <p>
+                <ul>
+                  {% for pattern in hypoglycemia_patterns %}
+                    {% for rule in pattern.rules %}
+                        <li>{{ rule }}</li>
+                     {% endfor %}
+                  {% endfor %}
+                </ul>
+            </p>
+        </div>
+        {% endif %}
+
+        {% if severe_hyperglycemia_patterns is defined %}
+        <div>
+            <h2> {{ severe_hyperglycemia_patterns_title }}</h2>
+            <p>
+                <ul>
+                  {% for pattern in severe_hyperglycemia_patterns_patterns %}
+                    {% for rule in pattern.rules %}
+                        <li>{{ rule }}</li>
+                     {% endfor %}
+                  {% endfor %}
+                </ul>
+            </p>
+        </div>
+        {% endif %}
+    {% endblock %}
+</body>
+</html>
+

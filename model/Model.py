@@ -2,18 +2,21 @@ import pandas as pd
 from model.Translator import Translator
 from model.DecisionTree import DecisionTree
 import preprocessor as pp
+from jinja2 import Environment, FileSystemLoader
+from weasyprint import HTML
+import datetime
 
 
 class Model:
     """Class that contains a model of the data, composed of decision trees for each label and capable of extract 
     patterns """
 
-    def __init__(self, file_paths, max_impurity=0, language="es"):
+    def __init__(self, file_paths, language="es"):
 
         """Initializer for Model"""
 
         # Check if is a list of files or a string
-        if not isinstance(file_paths, (list, tuple) and isinstance(file_paths, str)):
+        if not isinstance(file_paths, (list, tuple)) and isinstance(file_paths, str):
             file_paths = [file_paths]
         else:
             raise ValueError('The filepath(s) must be a string or a list of strings')
@@ -36,12 +39,67 @@ class Model:
         self._hypo_dt = DecisionTree(data, labels["Hypoglycemia_Diagnosis_Next_Block"])
         self._severe_dt = DecisionTree(data, labels["Severe_Hyperglycemia_Diagnosis_Next_Block"])
 
-
-    def generate_report(self):
+    def generate_report(self, max_impurity=0.3, format="pdf"):
         """ Generate a PDF report with the patterns """
-        #TODO: Complete method. See http://pbpython.com/pdf-reports.html
-        raise NotImplementedError
 
+        if self._hyper_dt is None or self._hypo_dt is None or self._severe_dt is None:
+            raise NotFittedError("It is necessary to fit the model before generating the report")
+
+        # TODO: Complete method. See http://pbpython.com/pdf-reports.html
+        env = Environment(loader=FileSystemLoader('.'))
+        template = env.get_template("report/template.html")
+
+        title = 'Report_{}'.format(datetime.datetime.now().strftime("%d%m%y_%H%M"))
+        template_vars = {"title": title}
+
+        terms = self._translator.translate_to_language(['Hyperglycemia_Patterns', 'Hypoglycemia_Patterns',
+                                                  'Severe_Hyperglycemia_Patterns'])
+
+        # Hyperglycemia patterns
+        try:
+            patterns = self._hyper_dt.get_patterns(max_impurity=max_impurity)
+            if patterns:
+                template_vars["hyperglycemia_patterns_title"] = terms[0]
+                template_vars["hyperglycemia_patterns"] = patterns
+        except Exception as e:
+            #print_error('{0} : {1}'.format(terms[0], e))
+            pass
+
+        # Hypoglycemia patterns
+        try:
+            patterns = self._hypo_dt.get_patterns(max_impurity=max_impurity)
+            if patterns:
+                template_vars["hypoglycemia_patterns_title"] = terms[1]
+                template_vars["hypoglycemia_patterns"] = patterns
+        except Exception as e:
+            #print_error('{0} : {1}'.format(terms[1], e))
+            pass
+
+        # Severe Hyperglycemia patterns
+        try:
+            patterns = self._severe_dt.get_patterns(max_impurity=max_impurity)
+            if patterns:
+                template_vars["severe_hyperglycemia_patterns_title"] = terms[2]
+                template_vars["severe_hyperglycemia_patterns"] = patterns
+        except Exception as e:
+            #print_error('{0} : {1}'.format(terms[2], e))
+            pass
+
+
+
+
+
+
+
+        html_out = template.render(template_vars)
+        if format == "pdf":
+            HTML(string=html_out).write_pdf("{}.pdf".format(title))
+        elif format == "html":
+            f = open("{}.html".format(title), 'w')
+            f.write(html_out)
+            f.close()
+        else:
+            raise ValueError("File format must be pdf or html")
 
     def _process_data(self, file_paths):
 
@@ -52,7 +110,7 @@ class Model:
         to_lang = self._translator.translate_to_language
         to_col = self._translator.translate_to_column
 
-        dataset = pd.DataFrame(file_paths)
+        dataset = pd.DataFrame()
 
         for path in file_paths:
             # Load data

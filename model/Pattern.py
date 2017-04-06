@@ -16,7 +16,6 @@ class Pattern:
         if impurity < 0 or impurity > 1:
             raise ValueError("impurity must be in a range of [0,1]")
 
-        self.rules = rules
         self.samples = samples
         self.impurity = impurity
         self.number_pos = number_pos
@@ -30,13 +29,17 @@ class Pattern:
     def __str__(self):
         terms = self.__translator.translate_to_language(['Rules', 'Samples', 'Impurity', 'Number_Pos', 'Number_Neg'])
         pattern_str = '{0}:\n'.format(terms[0])
-        for _,rule in self.__compacted_rules.items():
+        for rule in self.rules:
             pattern_str += '\t{0}\n'.format(rule)
         pattern_str += '{:s}: {:.4g} ({:.2%})\n'.format(terms[1], self.samples, self.sample_size)
         pattern_str += '{:s}: {:.4g}\n'.format(terms[2], self.impurity)
         pattern_str += '{:s}: {:.4g}\n'.format(terms[3], self.number_pos)
         pattern_str += '{:s}: {:.4g}\n'.format(terms[4], self.number_neg)
         return pattern_str
+
+    @property
+    def rules(self):
+        return [rule for _,rule in self.__compacted_rules.items()]
 
     @staticmethod
     def __compact_rules(rules):
