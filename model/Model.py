@@ -11,7 +11,7 @@ class Model:
     """Class that contains a model of the data, composed of decision trees for each label and capable of extract 
     patterns """
 
-    def __init__(self, file_paths, language="es"):
+    def __init__(self, file_paths, metadata=None, language="es"):
 
         """Initializer for Model"""
 
@@ -31,6 +31,15 @@ class Model:
         self._hypo_dt = None
         self._severe_dt = None
 
+        if metadata is None:
+            self.metadata = dict()
+        else:
+            self.metadata = metadata
+
+        # Add initial and end dates to metadata
+        self.metadata["Init_Date"] = self._dataset.iloc[0]['Datetime']
+        self.metadata["End_Date"] = self._dataset.iloc[-1]['Datetime']
+
     def fit(self):
         """ Create and fit the decision trees used to extract the patterns """
 
@@ -39,57 +48,57 @@ class Model:
         self._hypo_dt = DecisionTree(data, labels["Hypoglycemia_Diagnosis_Next_Block"])
         self._severe_dt = DecisionTree(data, labels["Severe_Hyperglycemia_Diagnosis_Next_Block"])
 
-    def generate_report(self, max_impurity=0.3, format="pdf"):
+    def generate_report(self, max_impurity=0.3, min_sample_size=0, format="pdf"):
         """ Generate a PDF report with the patterns """
 
         if self._hyper_dt is None or self._hypo_dt is None or self._severe_dt is None:
             raise NotFittedError("It is necessary to fit the model before generating the report")
 
-        # TODO: Complete method. See http://pbpython.com/pdf-reports.html
         env = Environment(loader=FileSystemLoader('.'))
         template = env.get_template("report/template.html")
 
         title = 'Report_{}'.format(datetime.datetime.now().strftime("%d%m%y_%H%M"))
         template_vars = {"title": title}
 
-        terms = self._translator.translate_to_language(['Hyperglycemia_Patterns', 'Hypoglycemia_Patterns',
-                                                  'Severe_Hyperglycemia_Patterns'])
+        template_vars["metadata"] = self.metadata
+
+        subtitles = self._translator.translate_to_language(['Hyperglycemia_Patterns', 'Hypoglycemia_Patterns',
+                                                            'Severe_Hyperglycemia_Patterns', 'Pattern'])
+
+        terms = self._translator.translate_to_language(['Samples', 'Impurity', 'Number_Pos', 'Number_Neg'])
+
+        template_vars["pattern_title"] = subtitles[3]
+        template_vars["samples_title"] = terms[0]
+        template_vars["impurity_title"] = terms[1]
+        template_vars["number_pos"] = terms[2]
+        template_vars["number_neg"] = terms[3]
 
         # Hyperglycemia patterns
         try:
-            patterns = self._hyper_dt.get_patterns(max_impurity=max_impurity)
+            patterns = self._hyper_dt.get_patterns(max_impurity=max_impurity, min_sample_size=0)
             if patterns:
-                template_vars["hyperglycemia_patterns_title"] = terms[0]
+                template_vars["hyperglycemia_patterns_title"] = subtitles[0]
                 template_vars["hyperglycemia_patterns"] = patterns
         except Exception as e:
-            #print_error('{0} : {1}'.format(terms[0], e))
-            pass
+            raise Exception('{0} : {1}'.format(subtitles[0], e))
 
         # Hypoglycemia patterns
         try:
-            patterns = self._hypo_dt.get_patterns(max_impurity=max_impurity)
+            patterns = self._hypo_dt.get_patterns(max_impurity=max_impurity, min_sample_size=min_sample_size)
             if patterns:
-                template_vars["hypoglycemia_patterns_title"] = terms[1]
+                template_vars["hypoglycemia_patterns_title"] = subtitles[1]
                 template_vars["hypoglycemia_patterns"] = patterns
         except Exception as e:
-            #print_error('{0} : {1}'.format(terms[1], e))
-            pass
+            raise Exception('{0} : {1}'.format(subtitles[0], e))
 
         # Severe Hyperglycemia patterns
         try:
-            patterns = self._severe_dt.get_patterns(max_impurity=max_impurity)
+            patterns = self._severe_dt.get_patterns(max_impurity=max_impurity, min_sample_size=min_sample_size)
             if patterns:
-                template_vars["severe_hyperglycemia_patterns_title"] = terms[2]
+                template_vars["severe_hyperglycemia_patterns_title"] = subtitles[2]
                 template_vars["severe_hyperglycemia_patterns"] = patterns
         except Exception as e:
-            #print_error('{0} : {1}'.format(terms[2], e))
-            pass
-
-
-
-
-
-
+            raise Exception('{0} : {1}'.format(subtitles[0], e))
 
         html_out = template.render(template_vars)
         if format == "pdf":

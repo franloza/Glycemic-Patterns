@@ -63,7 +63,8 @@ class DecisionTree:
         n_nodes = self.tree.node_count
         children_left = self.tree.children_left
         children_right = self.tree.children_right
-        num_records = self.tree.n_node_samples[0]
+        total_neg = self.tree.value[0][0][0]
+        total_pos = self.tree.value[0][0][1]
 
         if n_nodes == 1:
             raise ValueError("The decision tree only consists of a root node. Patterns can't be defined")
@@ -90,7 +91,7 @@ class DecisionTree:
         for leaf in valid_leaves:
             rules = [Rule(node["Feature"], node["Operator"], node["Threshold"], self.__translator) for node in
                      leaf[:-1]]
-            pattern = Pattern(rules, num_records, leaf[-1]["Samples"], leaf[-1]["Impurity"], leaf[-1]["Number_Pos"],
+            pattern = Pattern(rules, total_pos, total_neg, leaf[-1]["Impurity"], leaf[-1]["Number_Pos"],
                               leaf[-1]["Number_Neg"])
             if pattern.sample_size > min_sample_size and pattern.impurity < max_impurity:
                 patterns.append(pattern)

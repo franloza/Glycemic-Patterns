@@ -64,6 +64,7 @@ class Translator:
         'Diagnóstico de hipoglucemia en siguiente bloque':'Hypoglycemia_Diagnosis_Next_Block',
         'Diagnóstico en rango en siguiente bloque':'In_Range_Diagnosis_Next_Block',
         'Diagnóstico de hiperglucemia severa en siguiente bloque':'Severe_Hyperglycemia_Diagnosis_Next_Block',
+        'Patrón': 'Pattern',
         'Reglas': 'Rules',
         'Muestras': 'Samples',
         'Impureza': 'Impurity',

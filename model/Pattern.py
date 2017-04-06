@@ -6,40 +6,48 @@ class Pattern:
     """Class that represents a pattern composed of a set of rules, number of samples, impurity and number of positive
     and negative examples"""
 
-    def __init__(self, rules, num_records, samples, impurity, number_pos, number_neg, translator=Translator()):
+    def __init__(self, rules, total_pos, total_neg, impurity, sample_size_pos, sample_size_neg, translator=Translator()):
 
         """Initializer for Pattern"""
         if not all(isinstance(item, Rule) for item in rules):
             TypeError("rules must be composed of Rule objects")
-        if samples < 0:
+        if sample_size_pos < 0 or sample_size_neg < 0:
             raise ValueError("number of samples must be positive")
         if impurity < 0 or impurity > 1:
             raise ValueError("impurity must be in a range of [0,1]")
 
-        self.samples = samples
+        self.total_pos = total_pos
+        self.total_neg = total_neg
         self.impurity = impurity
-        self.number_pos = number_pos
-        self.number_neg = number_neg
-        self.sample_size = samples/num_records
+        self.sample_size_pos = sample_size_pos
+        self.sample_size_neg = sample_size_neg
 
-        self.__compacted_rules = self.__compact_rules(rules)
-        self.__translator = translator
-        self.debug = self.__compacted_rules
+        self._compacted_rules = self.__compact_rules(rules)
+        self._translator = translator
+
 
     def __str__(self):
-        terms = self.__translator.translate_to_language(['Rules', 'Samples', 'Impurity', 'Number_Pos', 'Number_Neg'])
+        terms = self._translator.translate_to_language(['Rules', 'Samples', 'Impurity', 'Number_Pos', 'Number_Neg'])
         pattern_str = '{0}:\n'.format(terms[0])
         for rule in self.rules:
             pattern_str += '\t{0}\n'.format(rule)
-        pattern_str += '{:s}: {:.4g} ({:.2%})\n'.format(terms[1], self.samples, self.sample_size)
+        pattern_str += '{:s}: {:.4g} ({:.2%})\n'.format(terms[1], self.sample_size, self.sample_size/self.total_records)
         pattern_str += '{:s}: {:.4g}\n'.format(terms[2], self.impurity)
-        pattern_str += '{:s}: {:.4g}\n'.format(terms[3], self.number_pos)
-        pattern_str += '{:s}: {:.4g}\n'.format(terms[4], self.number_neg)
+        pattern_str += '{:s}: {:.4g} ({:.2%})\n'.format(terms[3], self.sample_size_pos, self.total_pos)
+        pattern_str += '{:s}: {:.4g} ({:.2%})\n'.format(terms[4], self.sample_size_neg, self.total_neg)
         return pattern_str
 
     @property
+    def total_records(self):
+        return self.total_pos + self.total_neg
+
+    @property
+    def sample_size(self):
+        return self.sample_size_pos + self.sample_size_neg
+
+    @property
     def rules(self):
-        return [rule for _,rule in self.__compacted_rules.items()]
+        return [rule for _,rule in self._compacted_rules.items()]
 
     @staticmethod
     def __compact_rules(rules):
