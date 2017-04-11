@@ -3,81 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}{{ title }}{% endblock %}</title>
+    <style> img {image-resolution: 300dpi;} </style>
 </head>
 <body>
     {% block body %}
-    <h1>Patterns report</h1>
+    <h1> {{ report_title }}</h1>
     <p>
     {% if 'Patient_Name' in metadata %} {{metadata['Patient_Name']}} <br/>{% endif %}
     {% if 'Init_Date' in metadata and 'End_Date' in metadata %} {{metadata['Init_Date'].strftime("%d/%m/%y")}}
     - {{metadata['End_Date'].strftime("%d/%m/%y")}} <br/>{% endif %}
     </p>
 
-        {% if hyperglycemia_patterns is defined %}
-        <div>
-            <h2> {{ hyperglycemia_patterns_title }}</h2>
-            <p>
-                {% for pattern in hyperglycemia_patterns %}
-                <h3> {{ pattern_title }} {{ loop.index }}</h3>
-                <ul>
-                    {% for rule in pattern.rules %}
+    {% if warnings is defined %}
+    <div>
+        <h2> {{ warnings_title }}</h2>
+        <p>
+        <ul>
+            {% for warning in warnings %}
+            <li>{{ warning }}</li>
+            {% endfor %}
+        </ul>
+        </p>
+    </div>
+    {% endif %}
+
+
+    {% if hyperglycemia_patterns is defined %}
+    <div>
+        <h2> {{ hyperglycemia_patterns_title }}</h2>
+        <p>
+            {% for pattern in hyperglycemia_patterns %}
+            <h3> {{ pattern_title }} {{ loop.index }}</h3>
+            <ul>
+                {% for rule in pattern.rules %}
+                <li>{{ rule }}</li>
+                {% endfor %}
+            </ul>
+            <div>
+            {{ '{:s}: {:.4g} ({:.2%})'.format(samples_title,pattern.sample_size, pattern.sample_size / pattern.total_records)}}<br/>
+            {{ '{:s}: {:.4g}'.format(impurity_title, pattern.impurity)}} <br/>
+            {{ '{:s}: {:.4g} ({:.2%})'.format(number_pos, pattern.sample_size_pos, pattern.sample_size_pos / pattern.total_pos)}}<br/>
+            {{ '{:s}: {:.4g} ({:.2%})'.format(number_neg, pattern.sample_size_neg, pattern.sample_size_neg / pattern.total_neg) }}<br/>
+            </div>
+            {% endfor %}
+        </p>
+    </div>
+    {% endif %}
+
+    {% if hypoglycemia_patterns is defined %}
+    <div>
+        <h2> {{ hypoglycemia_patterns_title }}</h2>
+        <p>
+            {% for pattern in hypoglycemia_patterns %}
+            <h3> {{ pattern_title }} {{ loop.index }}</h3>
+            <ul>
+                {% for rule in pattern.rules %}
                     <li>{{ rule }}</li>
-                    {% endfor %}
-                </ul>
-                <div>
-                {{ '{:s}: {:.4g} ({:.2%})'.format(samples_title,pattern.sample_size, pattern.sample_size / pattern.total_records)}}<br/>
-                {{ '{:s}: {:.4g}'.format(impurity_title, pattern.impurity)}} <br/>
-                {{ '{:s}: {:.4g} ({:.2%})'.format(number_pos, pattern.sample_size_pos, pattern.sample_size_pos / pattern.total_pos)}}<br/>
-                {{ '{:s}: {:.4g} ({:.2%})'.format(number_neg, pattern.sample_size_neg, pattern.sample_size_neg / pattern.total_neg) }}<br/>
-                </div>
-                {% endfor %}
-            </p>
-        </div>
-        {% endif %}
+                 {% endfor %}
+            </ul>
+            <div>
+            {{ '{:s}: {:.4g} ({:.2%})'.format(samples_title,pattern.sample_size, pattern.sample_size / pattern.total_records)}}<br/>
+            {{ '{:s}: {:.4g}'.format(impurity_title, pattern.impurity)}} <br/>
+            {{ '{:s}: {:.4g} ({:.2%})'.format(number_pos, pattern.sample_size_pos, pattern.sample_size_pos / pattern.total_pos)}}<br/>
+            {{ '{:s}: {:.4g} ({:.2%})'.format(number_neg, pattern.sample_size_neg, pattern.sample_size_neg / pattern.total_neg) }}<br/>
+            </div>
+            {% endfor %}
+        </p>
+    </div>
+    {% endif %}
 
-        {% if hypoglycemia_patterns is defined %}
-        <div>
-            <h2> {{ hypoglycemia_patterns_title }}</h2>
-            <p>
-                {% for pattern in hypoglycemia_patterns %}
-                <h3> {{ pattern_title }} {{ loop.index }}</h3>
-                <ul>
-                    {% for rule in pattern.rules %}
-                        <li>{{ rule }}</li>
-                     {% endfor %}
-                </ul>
-                <div>
-                {{ '{:s}: {:.4g} ({:.2%})'.format(samples_title,pattern.sample_size, pattern.sample_size / pattern.total_records)}}<br/>
-                {{ '{:s}: {:.4g}'.format(impurity_title, pattern.impurity)}} <br/>
-                {{ '{:s}: {:.4g} ({:.2%})'.format(number_pos, pattern.sample_size_pos, pattern.sample_size_pos / pattern.total_pos)}}<br/>
-                {{ '{:s}: {:.4g} ({:.2%})'.format(number_neg, pattern.sample_size_neg, pattern.sample_size_neg / pattern.total_neg) }}<br/>
-                </div>
-                {% endfor %}
-            </p>
-        </div>
-        {% endif %}
+    {% if severe_hyperglycemia_patterns is defined %}
+    <div>
+        <h2> {{ severe_hyperglycemia_patterns_title }}</h2>
+        <p>
+            {% for pattern in severe_hyperglycemia_patterns %}
+            <h3> {{ pattern_title }} {{ loop.index }}</h3>
+            <ul>
+                {% for rule in pattern.rules %}
+                    <li>{{ rule }}</li>
+                 {% endfor %}
+            </ul>
+            <div>
+            {{ '{:s}: {:.4g} ({:.2%})'.format(samples_title,pattern.sample_size, pattern.sample_size / pattern.total_records)}}<br/>
+            {{ '{:s}: {:.4g}'.format(impurity_title, pattern.impurity)}} <br/>
+            {{ '{:s}: {:.4g} ({:.2%})'.format(number_pos, pattern.sample_size_pos, pattern.sample_size_pos / pattern.total_pos)}}<br/>
+            {{ '{:s}: {:.4g} ({:.2%})'.format(number_neg, pattern.sample_size_neg, pattern.sample_size_neg / pattern.total_neg) }}<br/>
+            </div>
+            {% endfor %}
+        </p>
+    </div>
+    {% endif %}
 
-        {% if severe_hyperglycemia_patterns is defined %}
+    <div>
+        <h2> {{ decision_trees_title }}</h2>
+        {% if hyper_dt_graph_path is defined %}
         <div>
-            <h2> {{ severe_hyperglycemia_patterns_title }}</h2>
-            <p>
-                {% for pattern in severe_hyperglycemia_patterns_patterns %}
-                <h3> {{ pattern_title }} {{ loop.index }}</h3>
-                <ul>
-                    {% for rule in pattern.rules %}
-                        <li>{{ rule }}</li>
-                     {% endfor %}
-                </ul>
-                <div>
-                {{ '{:s}: {:.4g} ({:.2%})'.format(samples_title,pattern.sample_size, pattern.sample_size / pattern.total_records)}}<br/>
-                {{ '{:s}: {:.4g}'.format(impurity_title, pattern.impurity)}} <br/>
-                {{ '{:s}: {:.4g} ({:.2%})'.format(number_pos, pattern.sample_size_pos, pattern.sample_size_pos / pattern.total_pos)}}<br/>
-                {{ '{:s}: {:.4g} ({:.2%})'.format(number_neg, pattern.sample_size_neg, pattern.sample_size_neg / pattern.total_neg) }}<br/>
-                </div>
-                {% endfor %}
-            </p>
+        <h3> {{hyper_dt_title}}</h3>
+            <p> <img src={{ hyper_dt_graph_path }}> </p>
         </div>
         {% endif %}
+        {% if hypo_dt_graph_path is defined %}
+        <div>
+        <h3> {{hypo_dt_title}}</h3>
+            <p> <img src={{ hypo_dt_graph_path }}> </p>
+        </div>
+        {% endif %}
+        {% if severe_dt_graph_path is defined %}
+        <div>
+        <h3> {{severe_dt_title}}</h3>
+            <p> <img src={{ severe_dt_graph_path }}> </p>
+        </div>
+        {% endif %}
+    </div>
+
     {% endblock %}
 </body>
 </html>

@@ -17,14 +17,14 @@ def check_data(data):
         raise ValueError('There are periods of time of more than one day without data')
 
     # Warn if the mean of carbohydrate entries per day is too low
+    warning_codes = []
     carbo_registers = data['Register_Type'].value_counts().loc[5]
     number_of_days = (data.iloc[-1]['Datetime'] - data.iloc[0]['Datetime']).days
     if (carbo_registers / number_of_days) < 1:
-        warnings.warn("The number of carbohydrate registers (Type 5) is less than 1 per day. "
+        warnings.warn("W0001: The number of carbohydrate registers (Type 5) is less than 1 per day. "
                       "Patterns may not be accurate")
-
-
-
+        warning_codes.append('W0001')
+    return warning_codes
 
 def define_blocks(data):
     """Function that divides the dataset in blocks by days according to carbohydrate measures. Furthermore, it adds

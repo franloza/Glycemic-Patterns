@@ -61,13 +61,14 @@ class DecisionTree:
         :return:  List of Pattern objects
         """
         n_nodes = self.tree.node_count
+
+        if n_nodes == 1:
+            raise ValueError("The decision tree only consists of a root node. Patterns can't be defined")
+
         children_left = self.tree.children_left
         children_right = self.tree.children_right
         total_neg = self.tree.value[0][0][0]
         total_pos = self.tree.value[0][0][1]
-
-        if n_nodes == 1:
-            raise ValueError("The decision tree only consists of a root node. Patterns can't be defined")
 
         are_leaves = np.zeros(shape=n_nodes, dtype=bool)
         stack = []

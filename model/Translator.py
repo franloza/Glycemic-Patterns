@@ -70,15 +70,27 @@ class Translator:
         'Impureza': 'Impurity',
         'Número de muestras positivas': 'Number_Pos',
         'Número de muestras negativas': 'Number_Neg',
+        'Hiperglucemia': 'Hyperglycemia',
+        'Hipoglucemia': 'Hypoglycemia',
+        'Hiperglucemia severa': 'Severe_Hyperglycemia',
         'Patrones de hiperglucemia': 'Hyperglycemia_Patterns',
         'Patrones de hipoglucemia': 'Hypoglycemia_Patterns',
         'Patrones de hiperglucemia severa': 'Severe_Hyperglycemia_Patterns',
+        'Informe de patrones': 'Pattern_Report',
+        'Árboles de decisión': 'Decision_Trees',
         'es menor que': '<',
         'es mayor que': '>',
         'es igual que': '=',
         'es mayor o igual que': '>=',
         'es menor o igual que': '<=',
-        'y': 'and'
+        'y': 'and',
+        
+        #Warning translation
+        'Avisos': 'Warnings',
+        'El número de registros de carbohidratos (Tipo 5) es menor de uno por día. Los patrones podrían no ser precisos':'W0001',
+        'No se han podido extraer patrones de hiperglucemia' : 'W0011',
+        'No se han podido extraer patrones de hipoglucemia': 'W0012',
+        'No se han podido extraer patrones de hiperglucemia severa': 'W0013',
         })
 
     __en_to_column_dict = bidict({

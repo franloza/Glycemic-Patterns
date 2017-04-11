@@ -1,10 +1,14 @@
+import uuid
+import datetime
+import os
+import errno
 import pandas as pd
+import warnings
 from model.Translator import Translator
 from model.DecisionTree import DecisionTree
 import preprocessor as pp
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
-import datetime
 
 
 class Model:
@@ -57,17 +61,28 @@ class Model:
         env = Environment(loader=FileSystemLoader('.'))
         template = env.get_template("report/template.html")
 
-        title = 'Report_{}'.format(datetime.datetime.now().strftime("%d%m%y_%H%M"))
-        template_vars = {"title": title}
+        if "Patient_Name" in self.metadata:
+            title = '{0}_{1}'.format(self.metadata["Patient_Name"].replace(' ', '_'),
+                                     datetime.datetime.now().strftime("%d%m%y_%H%M"))
+        else:
+            title = 'Report_{}'.format(datetime.datetime.now().strftime("%d%m%y_%H%M"))
 
-        template_vars["metadata"] = self.metadata
+        template_vars = {"title": title, "metadata": self.metadata}
 
         subtitles = self._translator.translate_to_language(['Hyperglycemia_Patterns', 'Hypoglycemia_Patterns',
-                                                            'Severe_Hyperglycemia_Patterns', 'Pattern'])
+                                                            'Severe_Hyperglycemia_Patterns', 'Pattern',
+                                                            'Pattern_Report',
+                                                            'Decision_Trees', 'Hyperglycemia', 'Hypoglycemia',
+                                                            'Severe_Hyperglycemia'])
 
         terms = self._translator.translate_to_language(['Samples', 'Impurity', 'Number_Pos', 'Number_Neg'])
 
         template_vars["pattern_title"] = subtitles[3]
+        template_vars["report_title"] = subtitles[4]
+        template_vars["decision_trees_title"] = subtitles[5]
+        template_vars["hyper_dt_title"] = subtitles[6]
+        template_vars["hypo_dt_title"] = subtitles[7]
+        template_vars["severe_dt_title"] = subtitles[8]
         template_vars["samples_title"] = terms[0]
         template_vars["impurity_title"] = terms[1]
         template_vars["number_pos"] = terms[2]
@@ -79,6 +94,9 @@ class Model:
             if patterns:
                 template_vars["hyperglycemia_patterns_title"] = subtitles[0]
                 template_vars["hyperglycemia_patterns"] = patterns
+        except ValueError as e:
+            warnings.warn("W0011: {0}. {1}".format(subtitles[0], str(e)))
+            self._warnings.append("W0011")
         except Exception as e:
             raise Exception('{0} : {1}'.format(subtitles[0], e))
 
@@ -88,8 +106,11 @@ class Model:
             if patterns:
                 template_vars["hypoglycemia_patterns_title"] = subtitles[1]
                 template_vars["hypoglycemia_patterns"] = patterns
+        except ValueError as e:
+            warnings.warn("W0012: {0}. {1}".format(subtitles[1], str(e)))
+            self._warnings.append("W0012")
         except Exception as e:
-            raise Exception('{0} : {1}'.format(subtitles[0], e))
+            raise Exception('{0} : {1}'.format(subtitles[1], e))
 
         # Severe Hyperglycemia patterns
         try:
@@ -97,8 +118,52 @@ class Model:
             if patterns:
                 template_vars["severe_hyperglycemia_patterns_title"] = subtitles[2]
                 template_vars["severe_hyperglycemia_patterns"] = patterns
+        except ValueError as e:
+            warnings.warn("W0013: {0}. {1}".format(subtitles[2], str(e)))
+            self._warnings.append("W0012")
         except Exception as e:
-            raise Exception('{0} : {1}'.format(subtitles[0], e))
+            raise Exception('{0} : {1}'.format(subtitles[2], e))
+
+        # Add warnings
+        if self._warnings:
+            warning_list = ['Warnings']
+            for warning in self._warnings:
+                warning_list.append(warning)
+            warning_list = self._translator.translate_to_language(warning_list)
+            template_vars["warnings_title"] = warning_list.pop(0)
+            template_vars["warnings"] = warning_list
+
+        # Generate graph images
+        if "Media_Path" in self.metadata:
+            output_path = self.metadata["Media_Path"] + '/'
+        else:
+            output_path = ''
+        if "UUID" in self.metadata:
+            uuid_str = self.metadata["UUID"]
+        elif "Patient_Name" in self.metadata:
+            uuid_str = str(uuid.uuid3(uuid.NAMESPACE_DNS, self.metadata["Patient_Name"]))
+        else:
+            uuid_str = str(uuid.uuid4())
+
+        output_path = '{0}{1}'.format(output_path, uuid_str)
+
+        try:
+            os.makedirs(output_path)
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
+
+        hyper_dt_graph_path = output_path + '/Hyperglycemia_Tree.png'
+        hypo_dt_graph_path = output_path + '/Hypoglycemia_Tree.png'
+        severe_dt_graph_path = output_path + '/Severe_Hyperglycemia_Tree.png'
+
+        self._hyper_dt.graph.write_png(hyper_dt_graph_path)
+        self._hypo_dt.graph.write_png(hypo_dt_graph_path)
+        self._severe_dt.graph.write_png(severe_dt_graph_path)
+
+        template_vars["hyper_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(hyper_dt_graph_path))
+        template_vars["hypo_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(hypo_dt_graph_path))
+        template_vars["severe_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(severe_dt_graph_path))
 
         html_out = template.render(template_vars)
         if format == "pdf":
@@ -136,7 +201,7 @@ class Model:
 
             # Check anomalies in the data
             try:
-                pp.check_data(raw_data)
+                self._warnings = pp.check_data(raw_data)
             except Exception as e:
                 raise DataFormatException(e)
 
