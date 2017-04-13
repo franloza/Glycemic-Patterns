@@ -1,10 +1,12 @@
-import numpy as np
 import datetime
-import pandas as pd
-import peakdetect
 import warnings
-from sklearn.preprocessing import LabelBinarizer, Imputer
+
+import numpy as np
+import pandas as pd
 from IPython.core.display import display, HTML
+from sklearn.preprocessing import LabelBinarizer, Imputer
+
+from lib import peakdetect
 
 
 def check_data(data):

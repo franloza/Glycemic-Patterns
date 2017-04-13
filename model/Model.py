@@ -59,7 +59,7 @@ class Model:
             raise NotFittedError("It is necessary to fit the model before generating the report")
 
         env = Environment(loader=FileSystemLoader('.'))
-        template = env.get_template("report/template.html")
+        template = env.get_template("templates/report.html")
 
         if "Patient_Name" in self.metadata:
             title = '{0}_{1}'.format(self.metadata["Patient_Name"].replace(' ', '_'),
