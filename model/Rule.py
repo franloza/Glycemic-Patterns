@@ -1,4 +1,4 @@
-from model.Translator import Translator
+from .Translator import Translator
 
 class Rule:
     """Class that represents a rule composed of a feature, an operator and a threshold value"""

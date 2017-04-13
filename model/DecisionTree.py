@@ -1,9 +1,9 @@
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import cross_val_score
-from visualization import generate_graph_tree
-from model.Rule import Rule
-from model.Pattern import Pattern
-from model.Translator import Translator
+from ..visualization import generate_graph_tree
+from .Translator import Translator
+from .Rule import Rule
+from .Pattern import Pattern
 import numpy as np
 
 

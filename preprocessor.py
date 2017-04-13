@@ -5,8 +5,7 @@ import numpy as np
 import pandas as pd
 from IPython.core.display import display, HTML
 from sklearn.preprocessing import LabelBinarizer, Imputer
-
-from lib import peakdetect
+from .lib import peakdetect
 
 
 def check_data(data):

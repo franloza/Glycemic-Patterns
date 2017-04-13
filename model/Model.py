@@ -4,10 +4,11 @@ import os
 import errno
 import pandas as pd
 import warnings
-from model.Translator import Translator
-from model.DecisionTree import DecisionTree
-import preprocessor as pp
+from os.path import join
 from jinja2 import Environment, FileSystemLoader
+from .DecisionTree import DecisionTree
+from .Translator import Translator
+from .. import preprocessor as pp
 from weasyprint import HTML
 
 
@@ -20,8 +21,9 @@ class Model:
         """Initializer for Model"""
 
         # Check if is a list of files or a string
-        if not isinstance(file_paths, (list, tuple)) and isinstance(file_paths, str):
-            file_paths = [file_paths]
+        if isinstance(file_paths, (list, tuple)) or isinstance(file_paths, str):
+            if isinstance(file_paths, str):
+                file_paths = [file_paths]
         else:
             raise ValueError('The filepath(s) must be a string or a list of strings')
 
@@ -52,14 +54,14 @@ class Model:
         self._hypo_dt = DecisionTree(data, labels["Hypoglycemia_Diagnosis_Next_Block"])
         self._severe_dt = DecisionTree(data, labels["Severe_Hyperglycemia_Diagnosis_Next_Block"])
 
-    def generate_report(self, max_impurity=0.3, min_sample_size=0, format="pdf"):
+    def generate_report(self, max_impurity=0.3, min_sample_size=0, format="pdf", save_file=True):
         """ Generate a PDF report with the patterns """
 
         if self._hyper_dt is None or self._hypo_dt is None or self._severe_dt is None:
             raise NotFittedError("It is necessary to fit the model before generating the report")
 
-        env = Environment(loader=FileSystemLoader('.'))
-        template = env.get_template("templates/report.html")
+        env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')))
+        template = env.get_template("report.html")
 
         if "Patient_Name" in self.metadata:
             title = '{0}_{1}'.format(self.metadata["Patient_Name"].replace(' ', '_'),
@@ -135,17 +137,17 @@ class Model:
 
         # Generate graph images
         if "Media_Path" in self.metadata:
-            output_path = self.metadata["Media_Path"] + '/'
+            output_path = self.metadata["Media_Path"]
         else:
             output_path = ''
         if "UUID" in self.metadata:
-            uuid_str = self.metadata["UUID"]
+            uuid_str = str(self.metadata["UUID"])
         elif "Patient_Name" in self.metadata:
             uuid_str = str(uuid.uuid3(uuid.NAMESPACE_DNS, self.metadata["Patient_Name"]))
         else:
             uuid_str = str(uuid.uuid4())
 
-        output_path = '{0}{1}'.format(output_path, uuid_str)
+        output_path = join(output_path, uuid_str)
 
         try:
             os.makedirs(output_path)
@@ -167,13 +169,18 @@ class Model:
 
         html_out = template.render(template_vars)
         if format == "pdf":
-            HTML(string=html_out).write_pdf("{}.pdf".format(title))
+            if save_file:
+                HTML(string=html_out).write_pdf(join(output_path,"{}.pdf".format(title)))
+            result = HTML(string=html_out).write_pdf()
         elif format == "html":
             f = open("{}.html".format(title), 'w')
             f.write(html_out)
             f.close()
+            result = HTML(string=html_out)
         else:
             raise ValueError("File format must be pdf or html")
+
+        return result
 
     def _process_data(self, file_paths):
 
@@ -193,8 +200,8 @@ class Model:
                                        usecols=list(range(0, 9)),
                                        parse_dates=to_lang(["Datetime"]), decimal=",",
                                        date_parser=lambda x: pd.to_datetime(x, format="%Y/%m/%d %H:%M"))
-            except:
-                raise Exception("There was an error reading the data file {}".format(path))
+            except Exception as e:
+                raise IOError("There was an error reading the data file {}: {}".format(path, e))
 
             # Translate column names
             raw_data.columns = (to_col(raw_data.columns))

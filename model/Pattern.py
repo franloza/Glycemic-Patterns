@@ -1,5 +1,5 @@
-from model.Translator import Translator
-from model.Rule import Rule
+from .Translator import Translator
+from .Rule import Rule
 
 
 class Pattern:
