@@ -46,10 +46,15 @@ class Model:
         self.metadata["Init_Date"] = self._dataset.iloc[0]['Datetime']
         self.metadata["End_Date"] = self._dataset.iloc[-1]['Datetime']
 
-    def fit(self):
+    def fit(self, features):
         """ Create and fit the decision trees used to extract the patterns """
 
-        [data, labels] = pp.prepare_to_decision_trees(self._dataset)
+        if len(features) < 5:
+            # Not all the features has been included
+            [data, labels] = pp.prepare_to_decision_trees(self._dataset, features)
+        else:
+            # Use all features
+            [data, labels] = pp.prepare_to_decision_trees(self._dataset)
         self._hyper_dt = DecisionTree(data, labels["Hyperglycemia_Diagnosis_Next_Block"])
         self._hypo_dt = DecisionTree(data, labels["Hypoglycemia_Diagnosis_Next_Block"])
         self._severe_dt = DecisionTree(data, labels["Severe_Hyperglycemia_Diagnosis_Next_Block"])
@@ -186,7 +191,9 @@ class Model:
 
         """ Read, preprocess and join all the data files specified in file_paths
 
-        :rtype: DataFrame dataset containing all the data files divided in blocks and preprocessed
+        :param file_paths: List of strings containing absolute paths to the CSV files
+        :param features: Features that will be included in the training dataset
+        :return: DataFrame dataset containing all the data files divided in blocks and preprocessed
         """
         to_lang = self._translator.translate_to_language
         to_col = self._translator.translate_to_column

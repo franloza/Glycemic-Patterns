@@ -448,11 +448,14 @@ def clean_extended_data(data):
     return new_data
 
 
-def prepare_to_decision_trees(data):
+def prepare_to_decision_trees(data, features=None):
     """ Function that returns the data and the labels ready to create a Decision tree
         IMPORTANT: It can cause information loss by removing entries. Don't use it to plot information
 
         :param data: cleaned extended data
+        :param features: List of strings containing the features to be used in the training process. Possibilities:
+                         'Mean', 'Std', 'Max', 'Min', 'MAGE'. Default: All features
+                    
         :return: data and labels to create DecisionTree object
         """
 
@@ -463,6 +466,19 @@ def prepare_to_decision_trees(data):
 
     # Remove columns that cannot be passed to the estimator
     new_data = data.drop(["Datetime", "Day_Block", "Last_Meal"], axis=1)
+    
+    # Remove columns that are not included in the features
+    if features is not None:
+        if 'Mean' not in features:
+            new_data.drop(["Glucose_Mean_Prev_Day", "Glucose_Mean_Prev_Block"], inplace=True, axis=1)
+        if 'Std' not in features:
+            new_data.drop(["Glucose_Std_Prev_Day", "Glucose_Std_Prev_Block"], inplace=True, axis=1)
+        if 'Max' not in features:
+            new_data.drop(["Glucose_Max_Prev_Day", "Glucose_Max_Prev_Block"], inplace=True, axis=1)
+        if 'Min' not in features:
+            new_data.drop(["Glucose_Min_Prev_Day", "Glucose_Min_Prev_Block"], inplace=True, axis=1)
+        if 'MAGE'not in features:
+            new_data.drop("MAGE_Prev_Day", inplace=True, axis=1)
 
     # Delete label columns
     new_data.drop(["Hyperglycemia_Diagnosis_Next_Block",

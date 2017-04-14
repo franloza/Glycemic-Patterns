@@ -36,7 +36,7 @@ class Translator:
         'Insulina de acción lenta sin valor numérico': 'Long_Insulin_No_Val',
         'Insulina de acción lenta (unidades)': 'Long_Insulin',
         'Bloque': 'Block',
-        'Hora(0-24)': 'Hour',
+        'Hora del día': 'Hour',
         'Día (Definido por bloques)': 'Day_Block',
         'Día y hora de la última comida': 'Last_Meal',
         'Bloque solapado': 'Overlapped_Block',
@@ -84,7 +84,13 @@ class Translator:
         'es mayor o igual que': '>=',
         'es menor o igual que': '<=',
         'y': 'and',
-        
+        'Lunes': 'Monday',
+        'Martes': 'Tuesday',
+        'Miércoles': 'Wednesday',
+        'Jueves': 'Thursday',
+        'Viernes': 'Friday',
+        'Sábado': 'Saturday',
+        'Domingo': 'Sunday',
         #Warning translation
         'Avisos': 'Warnings',
         'El número de registros de carbohidratos (Tipo 5) es menor de uno por día. Los patrones podrían no ser precisos':'W0001',

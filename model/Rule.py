@@ -1,3 +1,6 @@
+from math import floor
+from calendar import day_name
+
 from .Translator import Translator
 
 class Rule:
@@ -24,7 +27,13 @@ class Rule:
             rule_list = self.__translator.translate_to_language([self.feature + suffix])
         else:
             rule_list = self.__translator.translate_to_language([self.feature, self.operator])
-            rule_list.append('{:.4g}'.format(self.threshold))
+            if self.is_weekday():
+                self.threshold =  self.__translator.translate_to_language([str(day_name[floor(self.threshold) - 1])])[0]
+                rule_list.append(str(self.threshold))
+            elif self.is_hour():
+                rule_list.append('{:d}:00'.format(floor(self.threshold)))
+            else:
+                rule_list.append('{:.4g}'.format(self.threshold))
         return " ".join(rule_list)
 
     def is_boolean(self):
@@ -32,3 +41,15 @@ class Rule:
         :return: True if the feature is boolean
         """
         return self.feature == 'Overlapped_Block'
+
+    def is_weekday(self):
+        """ Method that returns if the feature of the rule is a day of the week (1-7)
+        :return: True if the feature is a week day
+        """
+        return self.feature == 'Weekday'
+
+    def is_hour(self):
+        """ Method that returns if the feature of the rule is a hour of the day (0-24)
+        :return: True if the feature is an hour
+        """
+        return self.feature in ['Hour', 'Last_Meal_Hour']
