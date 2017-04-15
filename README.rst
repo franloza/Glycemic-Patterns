@@ -35,10 +35,12 @@ Installation
 ============
 
 To install Glycemic-Patterns, both in Windows and Linux, it is necessary to use `Anaconda <https://www.continuum.io/downloads>`_.
-After installing, open the Anaconda Prompt (Windows) or console (Linux) and create an environment using *environment.yml*:
+After installing, open the Anaconda Prompt (Windows) or console (Linux) and create an environment using *environment.yml*. Then,
+install the package using *setup.py* file:
 ::
-    conda-env create -f environment.yml --force
-    source activate glycemic-patterns
+    $ conda-env create -f environment.yml --force
+    $ source activate glycemic-patterns
+    (glycemic-patterns)$ python setup.py install
 
 Usage
 =====
