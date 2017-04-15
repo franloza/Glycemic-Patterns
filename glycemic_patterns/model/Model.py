@@ -1,15 +1,17 @@
-import uuid
 import datetime
-import os
 import errno
-import pandas as pd
+import os
+import uuid
 import warnings
 from os.path import join
+
+import pandas as pd
 from jinja2 import Environment, FileSystemLoader
+from weasyprint import HTML
+
+from .. import preprocessor as pp
 from .DecisionTree import DecisionTree
 from .Translator import Translator
-from .. import preprocessor as pp
-from weasyprint import HTML
 
 
 class Model:
@@ -46,20 +48,15 @@ class Model:
         self.metadata["Init_Date"] = self._dataset.iloc[0]['Datetime']
         self.metadata["End_Date"] = self._dataset.iloc[-1]['Datetime']
 
-    def fit(self, features):
+    def fit(self, features=None):
         """ Create and fit the decision trees used to extract the patterns """
 
-        if len(features) < 5:
-            # Not all the features has been included
-            [data, labels] = pp.prepare_to_decision_trees(self._dataset, features)
-        else:
-            # Use all features
-            [data, labels] = pp.prepare_to_decision_trees(self._dataset)
+        [data, labels] = pp.prepare_to_decision_trees(self._dataset, features)
         self._hyper_dt = DecisionTree(data, labels["Hyperglycemia_Diagnosis_Next_Block"])
         self._hypo_dt = DecisionTree(data, labels["Hypoglycemia_Diagnosis_Next_Block"])
         self._severe_dt = DecisionTree(data, labels["Severe_Hyperglycemia_Diagnosis_Next_Block"])
 
-    def generate_report(self, max_impurity=0.3, min_sample_size=0, format="pdf", save_file=True):
+    def generate_report(self, max_impurity=0.3, min_sample_size=0, format="pdf", to_file=True, output_path=''):
         """ Generate a PDF report with the patterns """
 
         if self._hyper_dt is None or self._hypo_dt is None or self._severe_dt is None:
@@ -141,10 +138,6 @@ class Model:
             template_vars["warnings"] = warning_list
 
         # Generate graph images
-        if "Media_Path" in self.metadata:
-            output_path = self.metadata["Media_Path"]
-        else:
-            output_path = ''
         if "UUID" in self.metadata:
             uuid_str = str(self.metadata["UUID"])
         elif "Patient_Name" in self.metadata:
@@ -173,19 +166,25 @@ class Model:
         template_vars["severe_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(severe_dt_graph_path))
 
         html_out = template.render(template_vars)
+
         if format == "pdf":
-            if save_file:
+            if to_file:
                 HTML(string=html_out).write_pdf(join(output_path,"{}.pdf".format(title)))
-            result = HTML(string=html_out).write_pdf()
+            else:
+                result = HTML(string=html_out).write_pdf()
         elif format == "html":
-            f = open("{}.html".format(title), 'w')
-            f.write(html_out)
-            f.close()
-            result = HTML(string=html_out)
+            if to_file:
+                f = open("{}.html".format(title), 'w')
+                f.write(html_out)
+                f.close()
+            else:
+                result = HTML(string=html_out)
         else:
             raise ValueError("File format must be pdf or html")
 
-        return result
+        if not to_file:
+            return result
+
 
     def _process_data(self, file_paths):
 

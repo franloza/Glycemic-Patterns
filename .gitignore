@@ -1,11 +1,45 @@
-# PyCharm
-.idea/
+# Temporary and binary files
+*~
+*.py[cod]
+*.so
+*.cfg
+!setup.cfg
+*.orig
+*.log
+*.pot
+__pycache__/*
+.cache/*
+.*.swp
+**/.ipynb_checkpoints/*
 
-# Jupyter Notebook
-**/.ipynb_checkpoints/
+# Project files
+.ropeproject
+.project
+.pydevproject
+.settings
+.idea
 
-# Python
-**/__pycache__/
+# Package files
+*.egg
+*.eggs/
+.installed.cfg
+*.egg-info
+
+# Unittest and coverage
+htmlcov/*
+.coverage
+.tox
+junit.xml
+coverage.xml
+
+# Build and docs folder/files
+build/*
+dist/*
+sdist/*
+docs/api/*
+docs/_build/*
+cover/*
+MANIFEST
 
 # Data files
 **/sample.txt
@@ -14,3 +48,4 @@
 # Notebooks
 notebooks/data/
 notebooks/patients/*.png
+
