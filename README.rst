@@ -35,23 +35,25 @@ Installation
 ============
 
 To install Glycemic-Patterns, both in Windows and Linux, it is necessary to use `Anaconda <https://www.continuum.io/downloads>`_.
-After installing, open the Anaconda Prompt (Windows) or console (Linux) and create an environment using *environment.yml*:
-       ::
-           conda-env create -f environment.yml --force
-           source activate glycemic-patterns
+After installing, open the Anaconda Prompt (Windows) or console (Linux) and create an environment using *environment.yml*. Then,
+install the package using *setup.py* file:
+::
+    $ conda-env create -f environment.yml --force
+    $ source activate glycemic-patterns
+    (glycemic-patterns)$ python setup.py install
 
 Usage
 =====
 To generate a report using the command line:
-        ::
-            report.py [-h] [--version] [-o [output path]] [-f [FORMAT]] [-v] [-vv] FILEPATH [FILEPATH ...]
+::
+     report.py [-h] [--version] [-o [output path]] [-f [FORMAT]] [-v] [-vv] FILEPATH [FILEPATH ...]
 
 To generate a report using Python prompt:
-        ::
-            from glycemic_patterns.model import Model
-            trees = Model('<file_path>')
-            trees.fit()
-            trees.generate_report(output_path='<output_path'>, format='pdf')
+::
+     from glycemic_patterns.model import Model
+     trees = Model('<file_path>')
+     trees.fit()
+     trees.generate_report(output_path='<output_path'>, format='pdf')
 
 
 .. |license| image:: https://img.shields.io/github/license/mashape/apistatus.svg
