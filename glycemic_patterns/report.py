@@ -19,22 +19,6 @@ __license__ = "mit"
 _logger = logging.getLogger(__name__)
 
 
-def fib(n):
-    """Fibonacci example function
-
-    Args:
-      n (int): integer
-
-    Returns:
-      int: n-th Fibonacci number
-    """
-    assert n > 0
-    a, b = 1, 1
-    for i in range(n-1):
-        a, b = b, a+b
-    return a
-
-
 def parse_args(args):
     """Parse command line parameters
 
@@ -95,7 +79,7 @@ def setup_logging(loglevel):
     Args:
       loglevel (int): minimum loglevel for emitting messages
     """
-    logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
+    logformat = "[%(asctime)s] [%(levelname)s] [%(name)s] - %(message)s"
     logging.basicConfig(level=loglevel, stream=sys.stdout,
                         format=logformat, datefmt="%Y-%m-%d %H:%M:%S")
 
@@ -118,7 +102,7 @@ def main(args):
     else:
         kwargs["format"] = args.format
 
-    _logger.info("Constructing the model")
+    _logger.info("Creating Model instance using filepath(s): " + str(args.filepaths))
     trees = Model(args.filepaths)
     _logger.info("Fitting the model")
     trees.fit()

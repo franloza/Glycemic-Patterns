@@ -3,6 +3,8 @@ import errno
 import os
 import uuid
 import warnings
+import logging
+import time
 from os.path import join
 
 import pandas as pd
@@ -18,9 +20,12 @@ class Model:
     """Class that contains a model of the data, composed of decision trees for each label and capable of extract 
     patterns """
 
-    def __init__(self, file_paths, metadata=None, language="es"):
+    def __init__(self, file_paths, metadata=None, language="es", logger=None):
 
         """Initializer for Model"""
+
+        # Get logger
+        self.logger = logger or logging.getLogger(__name__)
 
         # Check if is a list of files or a string
         if isinstance(file_paths, (list, tuple)) or isinstance(file_paths, str):
@@ -29,6 +34,7 @@ class Model:
         else:
             raise ValueError('The filepath(s) must be a string or a list of strings')
 
+        self.logger.info('Setting the translator with language "{}"'.format(language))
         # Define translator functions
         self._translator = Translator(language)
 
@@ -39,6 +45,7 @@ class Model:
         self._hypo_dt = None
         self._severe_dt = None
 
+        self.logger.info('Setting the metadata')
         if metadata is None:
             self.metadata = dict()
         else:
@@ -47,6 +54,7 @@ class Model:
         # Add initial and end dates to metadata
         self.metadata["Init_Date"] = self._dataset.iloc[0]['Datetime']
         self.metadata["End_Date"] = self._dataset.iloc[-1]['Datetime']
+        self.logger.debug('metadata: {}: '.format(str(self.metadata)))
 
     def fit(self, features=None):
         """ Create and fit the decision trees used to extract the patterns """
@@ -194,6 +202,8 @@ class Model:
         :param features: Features that will be included in the training dataset
         :return: DataFrame dataset containing all the data files divided in blocks and preprocessed
         """
+
+        self.logger.info('Data pre-processing started')
         to_lang = self._translator.translate_to_language
         to_col = self._translator.translate_to_column
 
@@ -201,6 +211,7 @@ class Model:
 
         for path in file_paths:
             # Load data
+            self.logger.info('Reading file in path {}'.format(path))
             try:
                 raw_data = pd.read_csv(path, header=0, skiprows=1, delimiter="\t", index_col=0,
                                        usecols=list(range(0, 9)),
@@ -210,22 +221,41 @@ class Model:
                 raise IOError("There was an error reading the data file {}: {}".format(path, e))
 
             # Translate column names
+            self.logger.debug('Columns data file: {}'.format(str(raw_data.columns.values)))
             raw_data.columns = (to_col(raw_data.columns))
+            self.logger.debug('Translated columns: {}'.format(str(raw_data.columns.values)))
 
             # Check anomalies in the data
             try:
+                self.logger.info('Checking data')
                 self._warnings = pp.check_data(raw_data)
             except Exception as e:
                 raise DataFormatException(e)
 
             # Divide in blocks, extend dataset and clean data
+            time.process_time()
+            self.logger.info('Defining blocks')
             block_data = pp.define_blocks(raw_data)
+            ptime = time.process_time()
+            self.logger.debug('define_blocks Process Time: {}'.format(ptime))
             cleaned_block_data = pp.clean_processed_data(block_data)
+            ptime_new = time.process_time()
+            self.logger.debug('clean_processed_data Process Time: {}'.format(ptime_new - ptime))
+            ptime = ptime_new
+            self.logger.info('Adding features to dataset')
             extended_data = pp.extend_data(cleaned_block_data)
+            ptime_new = time.process_time()
+            self.logger.debug('extend_data Process Time: {}'.format(ptime_new - ptime))
+            ptime = ptime_new
             cleaned_extended_data = pp.clean_extended_data(extended_data)
+            ptime_new = time.process_time()
+            self.logger.debug('extend_data Process Time: {}'.format(ptime_new - ptime))
 
             # Append to dataset
             dataset = dataset.append(cleaned_extended_data, ignore_index=True)
+            self.logger.info("Data file has been preprocessed and appended to main dataset")
+
+        self.logger.info('Data pre-processing finished')
 
         return dataset
 
