@@ -1,14 +1,16 @@
 import datetime
-import warnings
-
+import logging
 import numpy as np
 import pandas as pd
-from IPython.core.display import display, HTML
+
 from sklearn.preprocessing import LabelBinarizer, Imputer
 from .lib import peakdetect
 
+# Get logger
+logger = logging.getLogger(__name__)
 
 def check_data(data):
+
     # Raise exception if there are no carbo values
     if 5 not in data['Register_Type'].unique():
         raise ValueError('There are no registers of carbohydrates (Register type 5)')
@@ -22,8 +24,7 @@ def check_data(data):
     carbo_registers = data['Register_Type'].value_counts().loc[5]
     number_of_days = (data.iloc[-1]['Datetime'] - data.iloc[0]['Datetime']).days
     if (carbo_registers / number_of_days) < 1:
-        warnings.warn("W0001: The number of carbohydrate registers (Type 5) is less than 1 per day. "
-                      "Patterns may not be accurate")
+        logger.warning("W0001: The number of carbohydrate registers (Type 5) is less than 1 per day. Patterns may not be accurate")
         warning_codes.append('W0001')
     return warning_codes
 
@@ -491,7 +492,3 @@ def prepare_to_decision_trees(data, features=None):
 def logical_or(x):
     return 1 if np.sum(x) > 0 else 0
 
-def _warning(message, category = UserWarning, filename = '', lineno = -1):
-    display(HTML('{0}{1}{2}'.format('<div class="alert alert-block alert-warning">', message, '</div>')))
-
-warnings.showwarning = _warning

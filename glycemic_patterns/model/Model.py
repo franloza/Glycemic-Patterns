@@ -38,8 +38,8 @@ class Model:
         # Define translator functions
         self._translator = Translator(language)
 
-        # Read and preprocess every data file
-        self._dataset = self._process_data(file_paths)
+        # Read and preprocess every data file, initializing raw and main dataset
+        self._process_data(file_paths)
 
         self._hyper_dt = None
         self._hypo_dt = None
@@ -52,8 +52,8 @@ class Model:
             self.metadata = metadata
 
         # Add initial and end dates to metadata
-        self.metadata["Init_Date"] = self._dataset.iloc[0]['Datetime']
-        self.metadata["End_Date"] = self._dataset.iloc[-1]['Datetime']
+        self.metadata["Init_Date"] = self._raw_dataset.iloc[0]['Datetime']
+        self.metadata["End_Date"] = self._raw_dataset.iloc[-1]['Datetime']
         self.logger.debug('metadata: {}: '.format(str(self.metadata)))
 
     def fit(self, features=None):
@@ -107,10 +107,10 @@ class Model:
                 template_vars["hyperglycemia_patterns_title"] = subtitles[0]
                 template_vars["hyperglycemia_patterns"] = patterns
         except ValueError as e:
-            warnings.warn("W0011: {0}. {1}".format(subtitles[0], str(e)))
+            self.logger.warning("W0011: {0}. {1}".format(subtitles[0], str(e)))
             self._warnings.append("W0011")
         except Exception as e:
-            raise Exception('{0} : {1}'.format(subtitles[0], e))
+            raise Exception('{0} : {1}'.format(subtitles[0], str(e)))
 
         # Hypoglycemia patterns
         try:
@@ -119,10 +119,10 @@ class Model:
                 template_vars["hypoglycemia_patterns_title"] = subtitles[1]
                 template_vars["hypoglycemia_patterns"] = patterns
         except ValueError as e:
-            warnings.warn("W0012: {0}. {1}".format(subtitles[1], str(e)))
+            self.logger.warning("W0012: {0}. {1}".format(subtitles[1], str(e)))
             self._warnings.append("W0012")
         except Exception as e:
-            raise Exception('{0} : {1}'.format(subtitles[1], e))
+            raise Exception('{0} : {1}'.format(subtitles[1], str(e)))
 
         # Severe Hyperglycemia patterns
         try:
@@ -131,10 +131,10 @@ class Model:
                 template_vars["severe_hyperglycemia_patterns_title"] = subtitles[2]
                 template_vars["severe_hyperglycemia_patterns"] = patterns
         except ValueError as e:
-            warnings.warn("W0013: {0}. {1}".format(subtitles[2], str(e)))
+            self.logger.warning("W0013: {0}. {1}".format(subtitles[2], str(e)))
             self._warnings.append("W0012")
         except Exception as e:
-            raise Exception('{0} : {1}'.format(subtitles[2], e))
+            raise Exception('{0} : {1}'.format(subtitles[2], str(e)))
 
         # Add warnings
         if self._warnings:
@@ -207,7 +207,9 @@ class Model:
         to_lang = self._translator.translate_to_language
         to_col = self._translator.translate_to_column
 
-        dataset = pd.DataFrame()
+        self._raw_dataset = pd.DataFrame()
+        self._dataset = pd.DataFrame()
+
 
         for path in file_paths:
             # Load data
@@ -229,7 +231,7 @@ class Model:
             try:
                 self.logger.info('Checking data')
                 self._warnings = pp.check_data(raw_data)
-            except Exception as e:
+            except ValueError as e:
                 raise DataFormatException(e)
 
             # Divide in blocks, extend dataset and clean data
@@ -251,13 +253,12 @@ class Model:
             ptime_new = time.process_time()
             self.logger.debug('extend_data Process Time: {}'.format(ptime_new - ptime))
 
-            # Append to dataset
-            dataset = dataset.append(cleaned_extended_data, ignore_index=True)
+            # Append to raw_data and main dataset
+            self._raw_dataset = self._raw_dataset.append(raw_data, ignore_index=True)
+            self._dataset = self._dataset.append(cleaned_extended_data, ignore_index=True)
             self.logger.info("Data file has been preprocessed and appended to main dataset")
 
         self.logger.info('Data pre-processing finished')
-
-        return dataset
 
 
 class DataFormatException(ValueError):
