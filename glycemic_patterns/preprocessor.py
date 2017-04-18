@@ -9,8 +9,8 @@ from .lib import peakdetect
 # Get logger
 logger = logging.getLogger(__name__)
 
-def check_data(data):
 
+def check_data(data):
     # Raise exception if there are no carbo values
     if 5 not in data['Register_Type'].unique():
         raise ValueError('There are no registers of carbohydrates (Register type 5)')
@@ -24,16 +24,19 @@ def check_data(data):
     carbo_registers = data['Register_Type'].value_counts().loc[5]
     number_of_days = (data.iloc[-1]['Datetime'] - data.iloc[0]['Datetime']).days
     if (carbo_registers / number_of_days) < 1:
-        logger.warning("W0001: The number of carbohydrate registers (Type 5) is less than 1 per day. Patterns may not be accurate")
+        logger.warning(
+            "W0001: The number of carbohydrate registers (Type 5) is less than 1 per day. Patterns may not be accurate")
         warning_codes.append('W0001')
     return warning_codes
+
 
 def define_blocks(data):
     """Function that divides the dataset in blocks by days according to carbohydrate measures. Furthermore, it adds
     insulin values to each block
 
     :param data: Dataset containing register type for each entry
-    :return: Dataset of register type 1 with a block a day_block associated to it and carbohydrates and insuline values
+    :return: Dataset of register type 1 with a block a day_block associated to itand the information associated to each
+     block
     """
 
     # Number of hours from the middle of the time window to the beginning and to the end
@@ -50,14 +53,14 @@ def define_blocks(data):
          "Rapid_Insulin_No_Val", "Rapid_Insulin"], axis=1)
 
     # Get information of carbohydrates
-    carbo_data = data[data["Register_Type"] == 5].drop(["Register_Type", "Glucose_Auto", "Glucose_Manual",
+    block_info = data[data["Register_Type"] == 5].drop(["Register_Type", "Glucose_Auto", "Glucose_Manual",
                                                         "Rapid_Insulin_No_Val", "Rapid_Insulin"], axis=1)
 
     # Merge columns Carbo and Carbo_No_Val into Carbo
-    carbo_data[carbo_column] = carbo_data[[carbo_column, 'Carbo_No_Val']].fillna(0).sum(axis=1)
-    carbo_data = carbo_data.drop(['Carbo_No_Val'], axis=1)
+    block_info[carbo_column] = block_info[[carbo_column, 'Carbo_No_Val']].fillna(0).sum(axis=1)
+    block_info = block_info.drop(['Carbo_No_Val'], axis=1)
 
-    dates = carbo_data["Datetime"].dt.date.unique()
+    dates = block_info["Datetime"].dt.date.unique()
 
     # Get information of insulin
     insulin_data = data[data["Register_Type"] == 4].drop(["Register_Type", "Glucose_Auto", "Glucose_Manual",
@@ -75,12 +78,12 @@ def define_blocks(data):
     auto_gluc_blocks.loc[:, "Overlapped_Block"] = False
     auto_gluc_blocks.loc[:, carbo_block_column] = 0
     auto_gluc_blocks.loc[:, "Rapid_Insulin_Block"] = 0
-    carbo_data.loc[:, "Block"] = 0
-    carbo_data.loc[:, "Day_Block"] = np.nan
+    block_info.loc[:, "Block"] = 0
+    block_info.loc[:, "Day_Block"] = np.nan
 
     # Iterate over days and define their corresponding blocks from 0 to n (Block 0 corresponds to no block)
     for date_i in dates:
-        carbo_day = carbo_data[carbo_data["Datetime"].dt.date == date_i]
+        carbo_day = block_info[block_info["Datetime"].dt.date == date_i]
         block_idx = 1
         # Iterate over all the occurences of carbohydrates in a day
         for index, mid_block in carbo_day.iterrows():
@@ -102,10 +105,10 @@ def define_blocks(data):
                 = [block_idx, mid_block_datetime.date(), carbo, rapid_insulin]
 
             # Associate block and insulin value to each carbohydrates entry to use in overlapped blocks
-            mask = carbo_data["Datetime"] == mid_block_datetime
-            carbo_data.loc[mask, "Block"] = block_idx
-            carbo_data.loc[mask, "Day_Block"] = mid_block_datetime.date()
-            carbo_data.loc[mask, "Rapid_Insulin"] = rapid_insulin
+            mask = block_info["Datetime"] == mid_block_datetime
+            block_info.loc[mask, "Block"] = block_idx
+            block_info.loc[mask, "Day_Block"] = mid_block_datetime.date()
+            block_info.loc[mask, "Rapid_Insulin"] = rapid_insulin
 
             # Define and add entry with overlapped block
             overlapped_mask = (auto_gluc_blocks["Datetime"].isin(block_time_window)) \
@@ -121,7 +124,7 @@ def define_blocks(data):
             block_idx += 1
 
     # Update hour of the block, time of last meal, insulin and carbo information of the overlapped blocks
-    for index, block_data in carbo_data.iterrows():
+    for index, block_data in block_info.iterrows():
         rapid_insulin = block_data["Rapid_Insulin"]
         carbo = block_data[carbo_column]
         mask = ((auto_gluc_blocks["Block"] == block_data["Block"])
@@ -136,7 +139,7 @@ def define_blocks(data):
 
     auto_gluc_blocks.sort_values(by=["Datetime", "Block"], inplace=True)
 
-    return auto_gluc_blocks
+    return auto_gluc_blocks, block_info
 
 
 def mage(data):
@@ -467,7 +470,7 @@ def prepare_to_decision_trees(data, features=None):
 
     # Remove columns that cannot be passed to the estimator
     new_data = data.drop(["Datetime", "Day_Block", "Last_Meal"], axis=1)
-    
+
     # Remove columns that are not included in the features
     if features is not None:
         if 'Mean' not in features:
@@ -478,7 +481,7 @@ def prepare_to_decision_trees(data, features=None):
             new_data.drop(["Glucose_Max_Prev_Day", "Glucose_Max_Prev_Block"], inplace=True, axis=1)
         if 'Min' not in features:
             new_data.drop(["Glucose_Min_Prev_Day", "Glucose_Min_Prev_Block"], inplace=True, axis=1)
-        if 'MAGE'not in features:
+        if 'MAGE' not in features:
             new_data.drop("MAGE_Prev_Day", inplace=True, axis=1)
 
     # Delete label columns
@@ -491,4 +494,3 @@ def prepare_to_decision_trees(data, features=None):
 
 def logical_or(x):
     return 1 if np.sum(x) > 0 else 0
-

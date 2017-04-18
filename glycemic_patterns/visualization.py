@@ -3,11 +3,13 @@ import datetime
 import pandas as pd
 import subprocess
 import pydot
+import numpy as np
+
 from sklearn.tree import export_graphviz
 from io import StringIO
 
 
-def plot_blocks(data, init_day, translator, end_day=None):
+def plot_blocks(data, init_day,translator, block_info=None, end_day=None):
     if end_day == None:
         end_day = init_day
 
@@ -32,6 +34,8 @@ def plot_blocks(data, init_day, translator, end_day=None):
 
     # Get sample from init_datetime to end_datetime
     auto_gluc_blocks_sample = data[(data["Day_Block"] >= init_day) & (data["Day_Block"] <= end_day)]
+    if block_info is not None:
+        block_info_sample = block_info[(block_info["Day_Block"] >= init_day) & (block_info["Day_Block"] <= end_day)]
 
     # Smooth glucose data
     smoothed_sample = smooth_plot(auto_gluc_blocks_sample)
@@ -40,16 +44,20 @@ def plot_blocks(data, init_day, translator, end_day=None):
     fig, ax = plt.subplots()
     labels = []
     for key, grp in smoothed_sample.groupby(['Block', 'Day_Block']):
-        ax = grp.plot(ax=ax, kind='line', x="Datetime", y="Glucose_Auto")
+        grp_axis = smoothed_sample[smoothed_sample['Day_Block'] == key[1]]
+        grp_axis.loc[grp_axis['Block'] != key[0], "Glucose_Auto"] = np.nan
         if one_day:
-            labels.append("{} {:d}".format(translator.translate_to_language(["Block"])[0], key[0]))
+            label = "{} {:d}".format(translator.translate_to_language(["Block"])[0], key[0])
         else:
-            labels.append("{} {:d} ({:%d/%m}) ".format(translator.translate_to_language(["Block"])[0], key[0], key[1]))
-    lines, _ = ax.get_legend_handles_labels()
+            label = "{} {:d} ({:%d/%m}) ".format(translator.translate_to_language(["Block"])[0], key[0], key[1])
+        ax = grp_axis.plot(ax=ax, kind='line', x="Datetime", y="Glucose_Auto", label=label)
+    if block_info is not None:
+        for i, dt in enumerate(block_info_sample["Datetime"]):
+            plt.axvline(dt, color='grey', linestyle='--', label='Carbo.' if i == 0 else "")
     if one_day:
-        ax.legend(lines, labels, loc='best')
+        ax.legend(loc='best')
     else:
-        ax.legend(lines, labels)
+        ax.legend()
     plt.show()
 
 

@@ -2,7 +2,6 @@ import datetime
 import errno
 import os
 import uuid
-import warnings
 import logging
 import time
 from os.path import join
@@ -11,6 +10,7 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 
+from .. import visualization as vis
 from .. import preprocessor as pp
 from .DecisionTree import DecisionTree
 from .Translator import Translator
@@ -52,17 +52,19 @@ class Model:
             self.metadata = metadata
 
         # Add initial and end dates to metadata
-        self.metadata["Init_Date"] = self._raw_dataset.iloc[0]['Datetime']
-        self.metadata["End_Date"] = self._raw_dataset.iloc[-1]['Datetime']
+        self.metadata["Init_Date"] = self._base_dataset.iloc[0]['Datetime']
+        self.metadata["End_Date"] = self._base_dataset.iloc[-1]['Datetime']
         self.logger.debug('metadata: {}: '.format(str(self.metadata)))
 
     def fit(self, features=None):
         """ Create and fit the decision trees used to extract the patterns """
 
-        [data, labels] = pp.prepare_to_decision_trees(self._dataset, features)
+        [data, labels] = pp.prepare_to_decision_trees(self._extended_dataset, features)
+        start_time = time.time()
         self._hyper_dt = DecisionTree(data, labels["Hyperglycemia_Diagnosis_Next_Block"])
         self._hypo_dt = DecisionTree(data, labels["Hypoglycemia_Diagnosis_Next_Block"])
         self._severe_dt = DecisionTree(data, labels["Severe_Hyperglycemia_Diagnosis_Next_Block"])
+        self.logger.debug('Time ellapsed fitting the model: {:.4f}'.format(time.time() - start_time))
 
     def generate_report(self, max_impurity=0.3, min_sample_size=0, format="pdf", to_file=True, output_path=''):
         """ Generate a PDF report with the patterns """
@@ -173,11 +175,20 @@ class Model:
         template_vars["hypo_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(hypo_dt_graph_path))
         template_vars["severe_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(severe_dt_graph_path))
 
+        # TODO: Complete section
+        """
+        # Generate graphics of each day
+        logging.debug(self.info_blocks)
+        self.info_blocks.sort_values(by=["Datetime"], inplace=True)
+        
+        for day in self.info_blocks["Day_Block"].unique():
+             #day_block_info = self.info_blocks[self.info_blocks["Day_Block"] == day]
+             vis.plot_blocks(self._base_dataset, day, self._translator, block_info=self.info_blocks)"""
         html_out = template.render(template_vars)
 
         if format == "pdf":
             if to_file:
-                HTML(string=html_out).write_pdf(join(output_path,"{}.pdf".format(title)))
+                HTML(string=html_out).write_pdf(join(output_path, "{}.pdf".format(title)))
             else:
                 result = HTML(string=html_out).write_pdf()
         elif format == "html":
@@ -193,27 +204,25 @@ class Model:
         if not to_file:
             return result
 
-
     def _process_data(self, file_paths):
 
         """ Read, preprocess and join all the data files specified in file_paths
 
         :param file_paths: List of strings containing absolute paths to the CSV files
-        :param features: Features that will be included in the training dataset
-        :return: DataFrame dataset containing all the data files divided in blocks and preprocessed
         """
 
         self.logger.info('Data pre-processing started')
+        start_time = time.time()
         to_lang = self._translator.translate_to_language
         to_col = self._translator.translate_to_column
 
-        self._raw_dataset = pd.DataFrame()
-        self._dataset = pd.DataFrame()
+        self._base_dataset = pd.DataFrame()
+        self._extended_dataset = pd.DataFrame()
+        self.info_blocks = pd.DataFrame()
 
-
-        for path in file_paths:
+        for index, path in enumerate(file_paths):
             # Load data
-            self.logger.info('Reading file in path {}'.format(path))
+            self.logger.info('Reading file {} in path {}'.format(index+1, path))
             try:
                 raw_data = pd.read_csv(path, header=0, skiprows=1, delimiter="\t", index_col=0,
                                        usecols=list(range(0, 9)),
@@ -237,28 +246,24 @@ class Model:
             # Divide in blocks, extend dataset and clean data
             time.process_time()
             self.logger.info('Defining blocks')
-            block_data = pp.define_blocks(raw_data)
+            [block_data, info_block] = pp.define_blocks(raw_data)
             ptime = time.process_time()
-            self.logger.debug('define_blocks Process Time: {}'.format(ptime))
+            self.logger.debug('define_blocks() Process Time: {:.8f}'.format(ptime))
             cleaned_block_data = pp.clean_processed_data(block_data)
-            ptime_new = time.process_time()
-            self.logger.debug('clean_processed_data Process Time: {}'.format(ptime_new - ptime))
-            ptime = ptime_new
             self.logger.info('Adding features to dataset')
             extended_data = pp.extend_data(cleaned_block_data)
             ptime_new = time.process_time()
-            self.logger.debug('extend_data Process Time: {}'.format(ptime_new - ptime))
-            ptime = ptime_new
+            self.logger.debug('extend_data() Process Time: {:.8f}'.format(ptime_new - ptime))
             cleaned_extended_data = pp.clean_extended_data(extended_data)
-            ptime_new = time.process_time()
-            self.logger.debug('extend_data Process Time: {}'.format(ptime_new - ptime))
 
             # Append to raw_data and main dataset
-            self._raw_dataset = self._raw_dataset.append(raw_data, ignore_index=True)
-            self._dataset = self._dataset.append(cleaned_extended_data, ignore_index=True)
+            self._base_dataset = self._base_dataset.append(block_data, ignore_index=True)
+            self._extended_dataset = self._extended_dataset.append(cleaned_extended_data, ignore_index=True)
+            self.info_blocks = self.info_blocks.append(info_block, ignore_index=True)
             self.logger.info("Data file has been preprocessed and appended to main dataset")
 
         self.logger.info('Data pre-processing finished')
+        self.logger.debug('Time process data: {:.4f} seconds'.format(time.time() - start_time))
 
 
 class DataFormatException(ValueError):
