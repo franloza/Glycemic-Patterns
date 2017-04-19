@@ -4,12 +4,13 @@ import pandas as pd
 import subprocess
 import pydot
 import numpy as np
+from os.path import join
 
 from sklearn.tree import export_graphviz
 from io import StringIO
 
 
-def plot_blocks(data, init_day,translator, block_info=None, end_day=None):
+def plot_blocks(data, init_day,translator, block_info=None, end_day=None, to_file=False, output_path=None):
     if end_day == None:
         end_day = init_day
 
@@ -54,11 +55,31 @@ def plot_blocks(data, init_day,translator, block_info=None, end_day=None):
     if block_info is not None:
         for i, dt in enumerate(block_info_sample["Datetime"]):
             plt.axvline(dt, color='grey', linestyle='--', label='Carbo.' if i == 0 else "")
+
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
     if one_day:
-        ax.legend(loc='best')
+        #ax.legend(loc='best')
+        ax.legend(loc='center left', bbox_to_anchor = (1, 0.5))
     else:
         ax.legend()
-    plt.show()
+
+    #Set figure size
+    fig.set_facecolor("white")
+    fig.set_size_inches(12, 5, forward=True)
+
+    #Export figure
+    if to_file:
+        if output_path is not None:
+            path = join(output_path, "{}.png".format(init_day.strftime("%d-%m-%y")))
+        else:
+            path = "{}.png".format(init_day.strftime("%d-%m-%y"))
+        plt.savefig(path)
+        return path
+    else:
+        plt.show()
 
 
 def smooth_plot(data):

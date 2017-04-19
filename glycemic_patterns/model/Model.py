@@ -4,6 +4,7 @@ import os
 import uuid
 import logging
 import time
+from collections import namedtuple, OrderedDict
 from os.path import join
 
 import pandas as pd
@@ -163,9 +164,9 @@ class Model:
             if exception.errno != errno.EEXIST:
                 raise
 
-        hyper_dt_graph_path = output_path + '/Hyperglycemia_Tree.png'
-        hypo_dt_graph_path = output_path + '/Hypoglycemia_Tree.png'
-        severe_dt_graph_path = output_path + '/Severe_Hyperglycemia_Tree.png'
+        hyper_dt_graph_path = join(output_path, 'Hyperglycemia_Tree.png')
+        hypo_dt_graph_path = join(output_path, 'Hypoglycemia_Tree.png')
+        severe_dt_graph_path = join(output_path, 'Severe_Hyperglycemia_Tree.png')
 
         self._hyper_dt.graph.write_png(hyper_dt_graph_path)
         self._hypo_dt.graph.write_png(hypo_dt_graph_path)
@@ -176,14 +177,24 @@ class Model:
         template_vars["severe_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(severe_dt_graph_path))
 
         # TODO: Complete section
-        """
+
         # Generate graphics of each day
-        logging.debug(self.info_blocks)
-        self.info_blocks.sort_values(by=["Datetime"], inplace=True)
-        
+        block_section_data = OrderedDict()
+        carbo_column = next(column_name for column_name in self.info_blocks.columns if column_name in ['Carbo_U', 'Carbo_G'])
+        BlockInfo = namedtuple('BlockInfo', ['block_num', 'datetime', 'carbo', 'rapid_insulin'])
+        DayInfo = namedtuple('DayInfo', ['day', 'plot_path', 'block_data'])
+
         for day in self.info_blocks["Day_Block"].unique():
-             #day_block_info = self.info_blocks[self.info_blocks["Day_Block"] == day]
-             vis.plot_blocks(self._base_dataset, day, self._translator, block_info=self.info_blocks)"""
+            block_data = []
+            plot_path = vis.plot_blocks(self._base_dataset, day, self._translator, block_info=self.info_blocks,
+                                        to_file=True, output_path=output_path)
+            day_block_info = self.info_blocks[self.info_blocks["Day_Block"] == day]
+            for index, block in day_block_info.iterrows():
+                block_data.append(BlockInfo(block["Block"], block["Datetime"], block[carbo_column], block["Rapid_Insulin"]))
+            block_section_data[day] = DayInfo(day, 'file:///{0}'.format(os.path.abspath(plot_path)), block_data)
+
+        template_vars["block_section_data"] = block_section_data
+
         html_out = template.render(template_vars)
 
         if format == "pdf":
@@ -222,7 +233,7 @@ class Model:
 
         for index, path in enumerate(file_paths):
             # Load data
-            self.logger.info('Reading file {} in path {}'.format(index+1, path))
+            self.logger.info('Reading file {} in path {}'.format(index + 1, path))
             try:
                 raw_data = pd.read_csv(path, header=0, skiprows=1, delimiter="\t", index_col=0,
                                        usecols=list(range(0, 9)),
