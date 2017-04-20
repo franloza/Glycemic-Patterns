@@ -54,7 +54,8 @@ def plot_blocks(data, init_day,translator, block_info=None, end_day=None, to_fil
         ax = grp_axis.plot(ax=ax, kind='line', x="Datetime", y="Glucose_Auto", label=label)
     if block_info is not None:
         for i, dt in enumerate(block_info_sample["Datetime"]):
-            plt.axvline(dt, color='grey', linestyle='--', label='Carbo.' if i == 0 else "")
+            if not pd.isnull(dt):
+                plt.axvline(dt, color='grey', linestyle='--', label='Carbo.' if i == 0 else "")
 
     # Shrink current axis by 20%
     box = ax.get_position()

@@ -6,7 +6,9 @@
     <style>
     img.tree {image-resolution: 300dpi;}
     img.plot {image-resolution: 150dpi;}
-
+    table, th, td {
+        border: 1px solid black;
+    }
     </style>
 </head>
 <body>
@@ -120,20 +122,53 @@
             {% endif %}
         </div>
     </div>
-    <h2> Block Information </h2>
+    <h2> {{ blocks_title }} </h2>
     {% for day, day_info in block_section_data.items(): %}
-        <h3> {{ day.strftime("%d/%m/%y") }}</h3>
-        <p> <img class="plot" src={{day_info.plot_path }}> </p>
-        <ul>
-        {% for block in day_info.block_data: %}
-            <li> <strong> Block {{ block.block_num }} </strong> -
-                Meal time: {{ block.datetime.strftime("%H:%M") }} -
-                Units of carbohydrates: {{'{0:g}'.format(block.carbo)}} - <br/>
-                Units of rapid insulin: {{'{0:g}'.format(block.rapid_insulin)}}
-            </li>
+        <div style="page-break-after: always">
+            <h3> {{ day.strftime("%d/%m/%Y") }}</h3>
+            <p> <img class="plot" src={{day_info.plot_path }}> </p>
+            <table style="width:100%" border="1">
+                <thead>
+                    <tr>
+                        <th rowspan="2">{{ block_label }}</th>
+                        <th rowspan="2">{{ carbo_label }}</th>
+                        <th rowspan="2">{{ rapid_insulin_label }}</th>
+                        <th colspan="4">{{ glucose_stats_label }}</th>
+                    </tr>
+                    <tr>
+                        <th>{{ mean_label }}</th>
+                        <th>{{ std_label }}</th>
+                        <th>{{ max_label }}</th>
+                        <th>{{ min_label }}</th>
+                    </tr>
+                </thead>
+                    {% for block in day_info.block_data: %}
+                       <tr>
+                            <td> {{ block.block_num }} </td>
+                            <td> {{'{0:g}'.format(block.carbo)}} </td>
+                            <td> {{'{0:g}'.format(block.rapid_insulin)}} </td>
+                            <td> {{'{0:g}'.format(block.mean)}} </td>
+                            <td> {{'{0:g}'.format(block.std)}} </td>
+                            <td> {{'{0:g}'.format(block.max)}} </td>
+                            <td> {{'{0:g}'.format(block.min)}} </td>
+                       </tr>
+                    {% endfor %}
+            </table>
+            <p>
+                <strong> {{ day_summary_title }} </strong>
+                <ul>
+                    <li> {{ mean_day_label }}: {{ '{0:2g}'.format(day_info.mean) }}</li>
+                    <li> {{ std_day_label }}: {{ '{0:g}'.format(day_info.std) }}</li>
+                    <li> {{ max_day_label }}: {{ '{0:g}'.format(day_info.max) }}</li>
+                    <li> {{ min_day_label }}: {{ '{0:g}'.format(day_info.min) }}</li>
+                    {% if day_info.mage|string != 'nan' %}
+                    <li> {{ mage_label }}: {{ '{0:g}'.format(day_info.mage)}}</li>
+                    {% endif %}
+
+                </ul>
+            </p>
+        </div>
         {% endfor %}
-        </ul>
-    {% endfor %}
     {% endblock %}
 </body>
 </html>

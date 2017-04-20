@@ -139,7 +139,7 @@ def define_blocks(data):
 
     auto_gluc_blocks.sort_values(by=["Datetime", "Block"], inplace=True)
 
-    return auto_gluc_blocks, block_info
+    return auto_gluc_blocks,block_info
 
 
 def mage(data):
@@ -210,9 +210,10 @@ def extend_data(data):
 
     # Add additional information (Weekday, minutes since last meal and hour of the last meal)
     new_data.loc[:, "Weekday"] = new_data.apply(lambda row: row["Day_Block"].weekday() + 1, axis=1)
-    new_data.loc[:, "Minutes_Last_Meal"] = new_data.apply(lambda row: int((row["Datetime"] - row["Last_Meal"])
-                                                                          .total_seconds() / 60), axis=1)
-    new_data.loc[:, "Last_Meal_Hour"] = new_data["Last_Meal"].apply(lambda row: row.hour)
+    new_data.loc[:, "Minutes_Last_Meal"] = new_data.apply(get_minutes_last_meal, axis=1)
+
+    new_data.loc[:, "Last_Meal_Hour"] = new_data["Last_Meal"].apply(lambda value: value.hour
+                                                                        if not pd.isnull(value) else np.nan)
 
     # Get Carbo_Block and Carbo_Prev_Block column name
     carbo_block_column = next(column_name for column_name in data.columns
@@ -281,12 +282,10 @@ def extend_data(data):
                                     suffixes=('', '_Prev_Day'))
     new_data["Glucose_Auto_Prev_Day"] = joined["Glucose_Auto_Prev_Day"]
 
-    # Delete all rows that does not contain values of glucose of previous day
-    new_data.dropna(inplace='True', subset=["Glucose_Auto_Prev_Day"])
-
     # Calculate difference of glucose with previous day
-    new_data["Delta_Glucose_Prev_Day"] = abs(
-        new_data["Glucose_Auto"] - new_data["Glucose_Auto_Prev_Day"])
+    new_data["Delta_Glucose_Prev_Day"] = new_data.apply(lambda row: abs(
+        row["Glucose_Auto"] - row["Glucose_Auto_Prev_Day"]) if not pd.isnull(
+        row["Glucose_Auto_Prev_Day"]) else np.nan, axis=1)
 
     # Add label to each entry (Diagnosis)
     new_data.loc[:, "Diagnosis"] = new_data["Glucose_Auto"].apply(label_map)
@@ -352,6 +351,18 @@ def ceil(dt):
         return dt
 
 
+def get_minutes_last_meal(row):
+    """ Function that returns the number of minutes since the last meal from a certain datetime
+
+    :param row: Row of the dataframe (Passed by by apply() function)
+    :return: Number of minutes
+    """
+    if not pd.isnull(row["Last_Meal"]):
+        return int((row["Datetime"] - row["Last_Meal"]).total_seconds() / 60)
+    else:
+        return np.nan
+
+
 def label_map(value):
     """ Function that determines the diagnosis according to the Glucose level of an entry.
     The three possible diagnosis are: Hypoglycemia, hyperglycemia and normal
@@ -374,23 +385,6 @@ def label_map(value):
         return 'In_Range'
 
 
-def clean_processed_data(data):
-    """ Function that handle entries with NaN values produced by its division in blocks with the function
-    define_blocks.
-    IMPORTANT: It can cause information loss by removing entries. Don't use it to plot information
-
-    :param data: data returned by define_blocks
-    :return: cleaned data
-    """
-
-    new_data = data.copy()
-
-    # Delete rows with no previous meal (Initial values)
-    new_data.dropna(inplace='True', subset=['Last_Meal'])
-
-    return new_data
-
-
 def clean_extended_data(data):
     """ Function that handle entries with NaN values produced by extending the dataset with the function
     extend_data
@@ -401,6 +395,9 @@ def clean_extended_data(data):
     """
 
     new_data = data.copy()
+
+    # Delete rows with no previous meal or that does not contain values of glucose of previous day
+    new_data.dropna(inplace='True', subset=['Last_Meal',"Glucose_Auto_Prev_Day"])
 
     # Get Carbo_Block and Carbo_Prev_Block column name
     carbo_block_column = next(column_name for column_name in data.columns
