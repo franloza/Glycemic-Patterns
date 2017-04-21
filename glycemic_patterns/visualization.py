@@ -53,7 +53,7 @@ def plot_blocks(data, init_day,translator, block_info=None, end_day=None, to_fil
             label = "{} {:d} ({:%d/%m}) ".format(translator.translate_to_language(["Block"])[0], key[0], key[1])
         ax = grp_axis.plot(ax=ax, kind='line', x="Datetime", y="Glucose_Auto", label=label)
     if block_info is not None:
-        for i, dt in enumerate(block_info_sample["Datetime"]):
+        for i, dt in enumerate(block_info_sample["Block_Meal"]):
             if not pd.isnull(dt):
                 plt.axvline(dt, color='grey', linestyle='--', label='Carbo.' if i == 0 else "")
 

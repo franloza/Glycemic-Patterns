@@ -4,10 +4,10 @@ import os
 import uuid
 import logging
 import time
+import pandas as pd
+
 from collections import namedtuple, OrderedDict
 from os.path import join
-
-import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 
@@ -67,7 +67,9 @@ class Model:
         self._severe_dt = DecisionTree(data, labels["Severe_Hyperglycemia_Diagnosis_Next_Block"])
         self.logger.debug('Time ellapsed fitting the model: {:.4f}'.format(time.time() - start_time))
 
-    def generate_report(self, max_impurity=0.3, min_sample_size=0, format="pdf", to_file=True, output_path=''):
+    def generate_report(self, max_impurity=0.3, min_sample_size=0, format="pdf", to_file=True, output_path='',
+                        block_info=True):
+
         """ Generate a PDF report with the patterns """
 
         if self._hyper_dt is None or self._hypo_dt is None or self._severe_dt is None:
@@ -179,53 +181,63 @@ class Model:
         template_vars["hypo_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(hypo_dt_graph_path))
         template_vars["severe_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(severe_dt_graph_path))
 
-        # Generate graphics of each day
-        block_section_data = OrderedDict()
-        carbo_column = next(column_name
-                            for column_name in self.info_blocks.columns
-                            if column_name in ['Carbo_Block_U', 'Carbo_Block_G'])
-        BlockInfo = namedtuple('BlockInfo', ['block_num', 'carbo', 'rapid_insulin', 'mean', 'std', 'max', 'min'])
-        DayInfo = namedtuple('DayInfo', ['day', 'plot_path', 'block_data', 'mean', 'std', 'max', 'min', 'mage'])
+        if block_info:
+            # Generate graphics of each day
+            block_section_data = OrderedDict()
+            carbo_column = next(column_name
+                                for column_name in self.info_blocks.columns
+                                if column_name in ['Carbo_Block_U', 'Carbo_Block_G'])
 
-        for day in self.info_blocks["Day_Block"].unique():
-            block_data = []
-            plot_path = vis.plot_blocks(self._base_dataset, day, self._translator, block_info=self.info_blocks,
-                                        to_file=True, output_path=output_path)
-            day_block_info = self.info_blocks[self.info_blocks["Day_Block"] == day]
-            for index, block in day_block_info.iterrows():
-                block_data.append(BlockInfo(block["Block"], block[carbo_column],
-                 block["Rapid_Insulin_Block"], block["Glucose_Mean_Block"], block["Glucose_Std_Block"]
-                 , block["Glucose_Max_Block"] , block["Glucose_Min_Block"]))
-            block_section_data[day] = DayInfo(day, 'file:///{0}'.format(os.path.abspath(plot_path)), block_data,
-                                              day_block_info["Glucose_Mean_Day"].iloc[0],
-                                              day_block_info["Glucose_Std_Day"].iloc[0],
-                                              day_block_info["Glucose_Max_Day"].iloc[0],
-                                              day_block_info["Glucose_Min_Day"].iloc[0],
-                                              day_block_info["MAGE"].iloc[0])
+            BlockInfo = namedtuple('BlockInfo', ['block_num', 'carbo', 'rapid_insulin', 'mean', 'std', 'max', 'min'])
+            DayInfo = namedtuple('DayInfo', ['day', 'plot_path', 'block_data', 'mean', 'std', 'max', 'min', 'mage'])
 
-        # Translate labels of blocks section
+            # Iterate over the days
+            for day in self.info_blocks["Day_Block"].unique():
+                block_data = []
 
-        template_vars["block_section_data"] = block_section_data
+                # Generate the plot
+                plot_path = vis.plot_blocks(self._base_dataset, day, self._translator, block_info=self.info_blocks,
+                                            to_file=True, output_path=output_path)
 
+                day_block_info = self.info_blocks[self.info_blocks["Day_Block"] == day]
 
-        block_labels = self._translator.translate_to_language(['Block', 'Mean', 'Std', 'Max', 'Mínimo',
-                                                                 carbo_column, 'Rapid_Insulin', 'Glucose_Stats',])
-        template_vars["block_label"] = block_labels[0]
-        template_vars["mean_label"] = block_labels[1]
-        template_vars["std_label"] = block_labels[2]
-        template_vars["max_label"] = block_labels[3]
-        template_vars["min_label"] = block_labels[4]
-        template_vars["carbo_label"] = block_labels[5]
-        template_vars["rapid_insulin_label"] = block_labels[6]
-        template_vars["glucose_stats_label"] = block_labels[7]
+                # Iterate over the blocks
+                for index, block in day_block_info.iterrows():
+                    block_data.append(BlockInfo(block["Block"], block[carbo_column],
+                     block["Rapid_Insulin_Block"], block["Glucose_Mean_Block"], block["Glucose_Std_Block"]
+                     , block["Glucose_Max_Block"] , block["Glucose_Min_Block"]))
+                block_section_data[day] = DayInfo(day, 'file:///{0}'.format(os.path.abspath(plot_path)), block_data,
+                                                  day_block_info["Glucose_Mean_Day"].iloc[0],
+                                                  day_block_info["Glucose_Std_Day"].iloc[0],
+                                                  day_block_info["Glucose_Max_Day"].iloc[0],
+                                                  day_block_info["Glucose_Min_Day"].iloc[0],
+                                                  day_block_info["MAGE"].iloc[0])
 
-        day_labels = self._translator.translate_to_language(['Glucose_Mean_Day', 'Glucose_Std_Prev_Day',
-                                                         'Glucose_Min_Prev_Day', 'Glucose_Max_Prev_Day', 'MAGE'])
-        template_vars["mean_day_label"] = day_labels[0]
-        template_vars["std_day_label"] = day_labels[1]
-        template_vars["max_day_label"] = day_labels[2]
-        template_vars["min_day_label"] = day_labels[3]
-        template_vars["mage_label"] = day_labels[4]
+            # Translate labels of blocks section
+
+            template_vars["block_section_data"] = block_section_data
+
+            carbo_label = 'Carbo_{}'.format(carbo_column[-1])
+
+            block_labels = self._translator.translate_to_language(['Block', 'Mean', 'Std', 'Max', 'Min',
+                                                                   carbo_label, 'Rapid_Insulin', 'Glucose_Stats'])
+
+            template_vars["block_label"] = block_labels[0]
+            template_vars["mean_label"] = block_labels[1]
+            template_vars["std_label"] = block_labels[2]
+            template_vars["max_label"] = block_labels[3]
+            template_vars["min_label"] = block_labels[4]
+            template_vars["carbo_label"] = block_labels[5]
+            template_vars["rapid_insulin_label"] = block_labels[6]
+            template_vars["glucose_stats_label"] = block_labels[7]
+
+            day_labels = self._translator.translate_to_language(['Glucose_Mean_Day', 'Glucose_Std_Prev_Day',
+                                                             'Glucose_Max_Prev_Day', 'Glucose_Min_Prev_Day', 'MAGE'])
+            template_vars["mean_day_label"] = day_labels[0]
+            template_vars["std_day_label"] = day_labels[1]
+            template_vars["max_day_label"] = day_labels[2]
+            template_vars["min_day_label"] = day_labels[3]
+            template_vars["mage_label"] = day_labels[4]
 
         terms = self._translator.translate_to_language(['Samples', 'Impurity', 'Number_Pos', 'Number_Neg'])
 
@@ -300,7 +312,7 @@ class Model:
             # Divide in blocks, extend dataset and clean data
             self.logger.info('Defining blocks')
             time.process_time()
-            [block_data,info_blocks] = pp.define_blocks(raw_data)
+            block_data = pp.define_blocks(raw_data)
             ptime = time.process_time()
             self.logger.debug('define_blocks() Process Time: {:.8f}'.format(ptime))
             self.logger.info('Adding features to dataset')
@@ -312,19 +324,17 @@ class Model:
 
             cleaned_extended_data = pp.clean_extended_data(extended_data)
 
-            # block_data.to_csv(path_or_buf='block_data.csv')
-            # extended_data.to_csv(path_or_buf='extended_data.csv')
+            block_data.to_csv(path_or_buf='block_data.csv')
+            extended_data.to_csv(path_or_buf='extended_data.csv')
             # cleaned_extended_data.to_csv(path_or_buf='cleaned_extended_data.csv')
 
             # Join meal time
-            info_blocks = info_blocks[['Day_Block', 'Block', 'Datetime']].merge(extended_data[['Day_Block', 'Block',
+            info_blocks = extended_data[['Day_Block', 'Block', 'Block_Meal',
                                 'Carbo_Block_U', 'Rapid_Insulin_Block',
                                 'Glucose_Mean_Block', 'Glucose_Std_Block', 'Glucose_Max_Block',
                                 'Glucose_Min_Block', 'Glucose_Mean_Day', 'Glucose_Std_Day',
                                 'Glucose_Max_Day','Glucose_Min_Day', 'MAGE']].drop_duplicates(
-                                subset=['Day_Block', 'Block', 'Carbo_Block_U',
-                                 'Rapid_Insulin_Block', 'Glucose_Mean_Block', 'Glucose_Std_Block',
-                                 'Glucose_Max_Block','Glucose_Min_Block']), on=['Day_Block', 'Block'], how='right', sort=True)
+                                subset=['Day_Block', 'Block'])
 
             # Append to raw_data and main dataset
             self._base_dataset = self._base_dataset.append(block_data, ignore_index=True)

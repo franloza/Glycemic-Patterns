@@ -75,6 +75,7 @@ def define_blocks(data):
     auto_gluc_blocks.loc[:, "Block"] = 0
     auto_gluc_blocks.loc[:, "Day_Block"] = np.nan
     auto_gluc_blocks.loc[:, "Last_Meal"] = np.nan
+    auto_gluc_blocks.loc[:, "Block_Meal"] = np.nan
     auto_gluc_blocks.loc[:, "Overlapped_Block"] = False
     auto_gluc_blocks.loc[:, carbo_block_column] = 0
     auto_gluc_blocks.loc[:, "Rapid_Insulin_Block"] = 0
@@ -127,9 +128,10 @@ def define_blocks(data):
     for index, block_data in block_info.iterrows():
         rapid_insulin = block_data["Rapid_Insulin"]
         carbo = block_data[carbo_column]
+        block_meal = block_data["Datetime"]
         mask = ((auto_gluc_blocks["Block"] == block_data["Block"])
                 & (auto_gluc_blocks["Day_Block"] == block_data["Day_Block"]))
-        auto_gluc_blocks.loc[mask, [carbo_block_column, "Rapid_Insulin_Block"]] = [carbo, rapid_insulin]
+        auto_gluc_blocks.loc[mask, [carbo_block_column, "Rapid_Insulin_Block", "Block_Meal"]] = [carbo, rapid_insulin, block_meal]
         auto_gluc_blocks.loc[auto_gluc_blocks["Datetime"] >= block_data["Datetime"], "Last_Meal"] = \
             block_data["Datetime"]
 
@@ -139,8 +141,7 @@ def define_blocks(data):
 
     auto_gluc_blocks.sort_values(by=["Datetime", "Block"], inplace=True)
 
-    return auto_gluc_blocks,block_info
-
+    return auto_gluc_blocks
 
 def mage(data):
     """Function that return the MAGE (Mean Amplitude of Glycemic Excursions) given a dataset
@@ -466,7 +467,7 @@ def prepare_to_decision_trees(data, features=None):
                    "Severe_Hyperglycemia_Diagnosis_Next_Block"]]
 
     # Remove columns that cannot be passed to the estimator
-    new_data = data.drop(["Datetime", "Day_Block", "Last_Meal"], axis=1)
+    new_data = data.drop(["Datetime", "Day_Block", "Last_Meal", "Block_Meal"], axis=1)
 
     # Remove columns that are not included in the features
     if features is not None:
