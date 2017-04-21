@@ -324,8 +324,8 @@ class Model:
 
             cleaned_extended_data = pp.clean_extended_data(extended_data)
 
-            block_data.to_csv(path_or_buf='block_data.csv')
-            extended_data.to_csv(path_or_buf='extended_data.csv')
+            # block_data.to_csv(path_or_buf='block_data.csv')
+            # extended_data.to_csv(path_or_buf='extended_data.csv')
             # cleaned_extended_data.to_csv(path_or_buf='cleaned_extended_data.csv')
 
             # Join meal time

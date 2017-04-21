@@ -78,9 +78,12 @@ def plot_blocks(data, init_day,translator, block_info=None, end_day=None, to_fil
         else:
             path = "{}.png".format(init_day.strftime("%d-%m-%y"))
         plt.savefig(path)
+        plt.close()
         return path
     else:
         plt.show()
+
+
 
 
 def smooth_plot(data):
