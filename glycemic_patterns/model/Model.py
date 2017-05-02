@@ -57,6 +57,18 @@ class Model:
         self.metadata["End_Date"] = self._base_dataset.iloc[-1]['Datetime']
         self.logger.debug('metadata: {}: '.format(str(self.metadata)))
 
+    @property
+    def language(self):
+        return self._translator.language
+
+    @language.setter
+    def language(self, language):
+        self._translator.language = language
+        self._hyper_dt.translator = self._translator
+        self._hyper_dt.translator = self._translator
+        self._hypo_dt.translator = self._translator
+        self._severe_dt.translator = self._translator
+
     def fit(self, features=None):
         """ Create and fit the decision trees used to extract the patterns """
 
@@ -87,7 +99,7 @@ class Model:
         template_vars = {"title": title, "metadata": self.metadata}
 
         if language is not None:
-            self._translator.language = language
+            self.language = language
 
         subtitles = self._translator.translate_to_language(['Hyperglycemia_Patterns', 'Hypoglycemia_Patterns',
                                                             'Severe_Hyperglycemia_Patterns', 'Pattern',

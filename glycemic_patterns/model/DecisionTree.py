@@ -33,7 +33,7 @@ class DecisionTree:
                                               min_impurity_split=1e-07,
                                               class_weight=None,
                                               presort=True)
-        self.__translator = translator
+        self.translator = translator
 
         # Train model
         self.__model.fit(data, label)
@@ -90,7 +90,7 @@ class DecisionTree:
         # Last element contains the leaf information
         valid_leaves = [leaf for leaf in leaves if leaf[-1]['Class'] == 'Positive']
         for leaf in valid_leaves:
-            rules = [Rule(node["Feature"], node["Operator"], node["Threshold"], self.__translator) for node in
+            rules = [Rule(node["Feature"], node["Operator"], node["Threshold"], self.translator) for node in
                      leaf[:-1]]
             pattern = Pattern(rules, total_pos, total_neg, leaf[-1]["Impurity"], leaf[-1]["Number_Pos"],
                               leaf[-1]["Number_Neg"])

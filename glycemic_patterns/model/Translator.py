@@ -200,7 +200,7 @@ class Translator:
 
     def __init__(self, language="es"):
         """Initializer for Translator"""
-        self.language = language
+        self._language = language
         self.__dictionary = Translator._dict_mapper.get(language)
 
     @property
@@ -209,7 +209,7 @@ class Translator:
 
     @language.setter
     def language(self, language):
-        self.language = language
+        self._language = language
         self.__dictionary = Translator._dict_mapper.get(language)
 
     def translate_to_language(self, terms):

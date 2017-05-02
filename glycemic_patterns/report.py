@@ -121,7 +121,7 @@ def main(args):
     kwargs["language"] = args.report_language
 
     _logger.info("Creating Model instance using filepath(s): " + str(args.filepaths))
-    trees = Model(args.filepaths, args.source_language)
+    trees = Model(args.filepaths, language=args.source_language)
     _logger.info("Fitting the model")
     trees.fit()
     _logger.info("Generating the report")

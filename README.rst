@@ -29,6 +29,7 @@ Features
 - Compatibility with FreeStyle devices
 - Report generation in PDF and HTML format
 - Manual feature selection to use in decision trees: Mean, Std, Max, Min, MAGE (Glycemic variability)
+- Multilanguage support (English and spanish)
 
 
 Installation
