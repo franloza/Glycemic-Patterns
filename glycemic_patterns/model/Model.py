@@ -68,7 +68,7 @@ class Model:
         self.logger.debug('Time ellapsed fitting the model: {:.4f}'.format(time.time() - start_time))
 
     def generate_report(self, max_impurity=0.3, min_sample_size=0, format="pdf", to_file=True, output_path='',
-                        block_info=True):
+                        block_info=True, language=None):
 
         """ Generate a PDF report with the patterns """
 
@@ -86,11 +86,15 @@ class Model:
 
         template_vars = {"title": title, "metadata": self.metadata}
 
+        if language is not None:
+            self._translator.language = language
+
         subtitles = self._translator.translate_to_language(['Hyperglycemia_Patterns', 'Hypoglycemia_Patterns',
                                                             'Severe_Hyperglycemia_Patterns', 'Pattern',
                                                             'Pattern_Report',
                                                             'Decision_Trees', 'Hyperglycemia', 'Hypoglycemia',
-                                                            'Severe_Hyperglycemia', 'Blocks_Information', 'Day_Summary'])
+                                                            'Severe_Hyperglycemia', 'Blocks_Information',
+                                                            'Day_Summary'])
 
         terms = self._translator.translate_to_language(['Samples', 'Impurity', 'Number_Pos', 'Number_Neg'])
 
@@ -204,8 +208,9 @@ class Model:
                 # Iterate over the blocks
                 for index, block in day_block_info.iterrows():
                     block_data.append(BlockInfo(block["Block"], block[carbo_column],
-                     block["Rapid_Insulin_Block"], block["Glucose_Mean_Block"], block["Glucose_Std_Block"]
-                     , block["Glucose_Max_Block"] , block["Glucose_Min_Block"]))
+                                                block["Rapid_Insulin_Block"], block["Glucose_Mean_Block"],
+                                                block["Glucose_Std_Block"]
+                                                , block["Glucose_Max_Block"], block["Glucose_Min_Block"]))
                 block_section_data[day] = DayInfo(day, 'file:///{0}'.format(os.path.abspath(plot_path)), block_data,
                                                   day_block_info["Glucose_Mean_Day"].iloc[0],
                                                   day_block_info["Glucose_Std_Day"].iloc[0],
@@ -232,7 +237,8 @@ class Model:
             template_vars["glucose_stats_label"] = block_labels[7]
 
             day_labels = self._translator.translate_to_language(['Glucose_Mean_Day', 'Glucose_Std_Prev_Day',
-                                                             'Glucose_Max_Prev_Day', 'Glucose_Min_Prev_Day', 'MAGE'])
+                                                                 'Glucose_Max_Prev_Day', 'Glucose_Min_Prev_Day',
+                                                                 'MAGE'])
             template_vars["mean_day_label"] = day_labels[0]
             template_vars["std_day_label"] = day_labels[1]
             template_vars["max_day_label"] = day_labels[2]
@@ -330,11 +336,11 @@ class Model:
 
             # Join meal time
             info_blocks = extended_data[['Day_Block', 'Block', 'Block_Meal',
-                                'Carbo_Block_U', 'Rapid_Insulin_Block',
-                                'Glucose_Mean_Block', 'Glucose_Std_Block', 'Glucose_Max_Block',
-                                'Glucose_Min_Block', 'Glucose_Mean_Day', 'Glucose_Std_Day',
-                                'Glucose_Max_Day','Glucose_Min_Day', 'MAGE']].drop_duplicates(
-                                subset=['Day_Block', 'Block'])
+                                         'Carbo_Block_U', 'Rapid_Insulin_Block',
+                                         'Glucose_Mean_Block', 'Glucose_Std_Block', 'Glucose_Max_Block',
+                                         'Glucose_Min_Block', 'Glucose_Mean_Day', 'Glucose_Std_Day',
+                                         'Glucose_Max_Day', 'Glucose_Min_Day', 'MAGE']].drop_duplicates(
+                subset=['Day_Block', 'Block'])
 
             # Append to raw_data and main dataset
             self._base_dataset = self._base_dataset.append(block_data, ignore_index=True)

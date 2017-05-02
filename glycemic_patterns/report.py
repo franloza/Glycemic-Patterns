@@ -57,6 +57,22 @@ def parse_args(args):
         type=str,
         default="pdf")
     parser.add_argument(
+        '-rl',
+        '--report-language',
+        dest="report_language",
+        nargs='?',
+        help="language of the report (en or es)",
+        type=str,
+        default="en")
+    parser.add_argument(
+        '-sl',
+        '--source-language',
+        dest="source_language",
+        nargs='?',
+        help="language of the columns of the source file (en or es)",
+        type=str,
+        default="es")
+    parser.add_argument(
         '-v',
         '--verbose',
         dest="loglevel",
@@ -102,8 +118,10 @@ def main(args):
     else:
         kwargs["format"] = args.format
 
+    kwargs["language"] = args.report_language
+
     _logger.info("Creating Model instance using filepath(s): " + str(args.filepaths))
-    trees = Model(args.filepaths)
+    trees = Model(args.filepaths, args.source_language)
     _logger.info("Fitting the model")
     trees.fit()
     _logger.info("Generating the report")
@@ -112,7 +130,6 @@ def main(args):
         _logger.info("{:s} report has been exported to {:s}".format(args.format.capitalize(), args.output_path))
     else:
         _logger.info("{} report has been exported to current directory".format(args.format).capitalize())
-
 
 
 def run():
