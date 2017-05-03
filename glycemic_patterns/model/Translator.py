@@ -205,7 +205,7 @@ class Translator:
 
     @property
     def language(self):
-        return self.language
+        return self._language
 
     @language.setter
     def language(self, language):

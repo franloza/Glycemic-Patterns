@@ -1,0 +1,66 @@
+<h2>Información del informe</h2>
+<h3>¿Qúe es un patrón?</h3>
+<p> Un patrón es un conjunto de reglas que describen una situación en la vida del paciente
+usando varias métricas relacionadas con el nivel de glucosa, valores de insulina,
+carbohidratos y variables de tiempo. A través de estas reglas se pueden identificar
+situaciones de riesgo  en relación a los niveles de glucosa del paciente </p>
+
+<h3>¿Qué es un bloque?</h3>
+<p> Cada día del paciente se divide en una serie de bloques definidos por las diferentes comidas que
+el paciente realiza a lo largo del día. Un bloque está definido por el periodo de tiempo que abarca
+desde dos horas antes de la comida hasta cuatro horas despúes. Los bloques pueden estar solapados
+y comprender ingesta de carbohidratos y aplicaciones de insulina que pueden estar presentes también
+en otros bloques. El bloque 0 siempre corresponde al periodo de tiempo restante que no es abarcado
+por ningún otro bloque.
+</p>
+
+<h3>¿Qúe tipo de patrones hay?</h3>
+<p> La información que aporta un patrón depende del tipo que sea. Los patrones pueden ser de
+tres tipos: Patrones de hiperglucemia, hipoglucemia e hiperglucemia severa. Los patrones de cada
+tipo describen situaciones en las que el paciente sufre un desorden de los niveles de glucosa
+en el siguiente bloque de comida. Los niveles de glucosa que marcan una situación de riesgo de cada
+tipo son los siguientes:
+    <ul>
+        <li>Hiperglucemia: 180 mg/dL</li>
+        <li>Hipoglucemia: 70 mg/dL</li>
+        <li>Hiperglucemia severa: 240 mg/dL</li>
+    </ul>
+</p>
+
+
+<h3>¿Qúe información ofrece un patrón?</h3>
+<p> Cada patrón esta compuesto por los siguientes elementos:
+    <ol>
+    <li> Conjunto de reglas que describen la situación de riesgo en el siguiente bloque </li>
+    <li> Número de muestras del conjunto de datos que son obtenidas por las reglas definidas en
+    el patrón. Se muestra también el porcentaje de muestras respecto al total del conjunto de datos</li>
+    <li> Impureza del patrón usando la impureza de Gini.  Alcanza su mínimo (cero) cuando todos las muestras
+    obtenidas por las reglas definidas están clasificadas como una situación de riesgo en el siguiente bloque. </li>
+    <li> Número de muestras positivas clasificadas como una situación de riesgo en el siguiente bloque.
+    Al lado se indica el porcentaje de muestras positivas respecto al total de muestras positivas </li>
+    <li> Número de muestras negativas clasificadas como una situación sin riesgo en el siguiente bloque.
+    Al lado se indica el porcentaje de muestras negativas respecto al total de muestras negativas </li>
+    </ol>
+</p>
+
+<h3>¿Cómo valorar un patrón?</h3>
+<p> Para valorar un patrón es necesario considerar dos factores:
+<ol>
+    <li>El número de muestras debe ser relevante. El límite de muestras mínimas es un 10% respecto al total de muestras
+    pero esto no significa que eso sea el mínimo para considerar un patrón relevante.Este criterio
+     debe ser establecido por el médico o paciente.</li>
+    <li>El patrón no tiene porque tener una impureza mínima. Los patrones largos con reglas complejas
+    tienden a sobreajustar el model a pesar de que la profundidad máxima del arbol está establecida en
+    5 niveles. Esto significa que, aunque la impureza del patron fuera cero, el modelo podría estar
+    sobreajustado y no ser preciso en situaciones de riesgo futuras</li>
+    </ol>
+</p>
+
+<h3>¿Cómo interpretar un árbol de decisión?</h3>
+<p>  El arbol de decisión contiene la refleja contiene los patrones de las situaciones de riesgo
+como los patrones que no resultan en una situación de riesgo. Los nodos del arbol se pueden interpretar
+a través de la información escrita o de su color. La escala de colores de cada nodo establece
+la clase a la que pertenecen la mayoría de las muestras obtenidas por la división hecha en el
+nodo padre y cuanto de impura es la división. En la siguiente escala se puede observar la pureza de la división
+de acuerdo a la intensidad del color de cada nodo: </p>
+<img class="dt_legend" src="{{ decision_tree_legend_path }}">

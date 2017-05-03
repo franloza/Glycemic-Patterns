@@ -1,0 +1,66 @@
+<h2>Report information</h2>
+<h3>What is a pattern?</h3>
+<p> A pattern is a set of rules that describe a situation in the patient's life using
+several metrics related to his glucose level, insulin values, carbohydrates and time
+variables. Through these rules, it is possible to identify risk situation with regard
+to the glucose levels of the patient.
+</p>
+
+<h3>What is a block?</h3>
+<p> Each day of the patient is divided in a series of blocks defined by the different meals that
+the patient has throughout the day. One block is defined by a time period that starts two hours before a
+meal and finishes four hours later. The blocks may be overlapped and include intakes of carbohydrates
+and insulin doses that are present also in other blocks. Block zero always corresponds to the
+remaining time that is not framed by any other block
+</p>
+
+<h3>What type of patterns are there?</h3>
+<p> The information that a pattern provides depends on its type. The patterns can be of three types:
+Hyperglycemia, hypoglycemia and severe hyperglycemia patterns. The patterns of each type describe
+situations when the patient suffers from a disorder in his glucose level in the next meal block. The
+thresholds that determine a risk situation are the following ones:
+    <ul>
+        <li>Hyperglycemia: 180 mg/dL</li>
+        <li>Hypoglycemia: 70 mg/dL</li>
+        <li>Severe hyperglycemia: 240 mg/dL</li>
+    </ul>
+</p>
+
+
+<h3>What information does a pattern provide?</h3>
+<p> Each pattern is composed by the following elements:
+    <ol>
+    <li> Set of rules that describe the risk situation in the next block </li>
+    <li> Number of sumples of the data set that are obtained by the defined rules in the pattern.
+    Moreover, it is displayed the percentage of samples regarding to the total of the data set</li>
+    <li> Impurity of the pattern using Gini impurity. It reaches its minimum (zero) when all the samples
+    obtained by the defined rules are classified as risk situation in the next block</li>
+    <li> Number of positive samples, classified as a risk situation in the next block. Moreover, it
+    shows the percentage of samples regarding to the total of positive samples</li>
+    <li> Number of negative samples, classified as a situation without risk in the next block.
+     Moreover, it shows the percentage of samples regarding to the total of negative samples</li>
+    </ol>
+</p>
+
+<h3> How to assess a pattern?</h3>
+
+<p> To assess a pattern it is necessary to consider two factors:
+<ol>
+    <li> The number of samples must be relevant. The threshold of minimum samples is a 10% of the total,
+    but this does not mean that it is the minimum number to consider a pattern as relevant. This
+    criteria must be set by the patient or the physician.</li>
+    <li>The pattern does not have to have a minimal impurity. Long patterns with complex rules tend
+    to overfit the model even though the maximum depth of the tree is set to 5 levels. This means that,
+    although the pattern's impurity was close to zero, the model would be overfitted and not be accurate
+    in future risk situations.
+    </li>
+    </ol>
+</p>
+
+<h3> How to interpret a decision tree?</h3>
+<p> The decision tree contains both the patterns of a risk situation and the patterns of a situation
+with no risk. The nodes of the tree can be interpreted through their written information or their color.
+The color scale of each node determines both the majority class of the samples obtained by the
+split made in the parent node and how impure is the split. In the following color scale, it can be
+observed the impurity of the split according to the color intensity of each node:</p>
+<img class="dt_legend" src="{{ decision_tree_legend_path }}">

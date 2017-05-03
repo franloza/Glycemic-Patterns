@@ -6,6 +6,11 @@
     <style>
     img.tree {image-resolution: 300dpi;}
     img.plot {image-resolution: 150dpi;}
+    img.dt_legend {
+        display: block;
+        margin: 0 auto;
+        image-resolution: 150dpi;
+        }
     table, th, td {
         border: 1px solid black;
     }
@@ -174,6 +179,16 @@
             {% endfor %}
         </div>
         {% endif %}
+
+        <div style="page-break-before: always">
+        {% block info %}
+        {% if language == 'es' %}
+            {% include "_report_info_es.html" %}
+        {% elif language == 'en' %}
+             {% include "_report_info_en.html" %}
+        {% endif %}
+        {% endblock %}
+        </div>
     {% endblock %}
 </body>
 </html>
