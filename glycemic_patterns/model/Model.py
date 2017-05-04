@@ -325,6 +325,13 @@ class Model:
             raw_data.columns = (to_col(raw_data.columns))
             self.logger.debug('Translated columns: {}'.format(str(raw_data.columns.values)))
 
+            # Check anomalies in the data
+            try:
+                self.logger.info('Checking period')
+                pp.check_period(raw_data)
+            except ValueError as e:
+                raise DataFormatException(e)
+
             periods = pp.get_valid_periods(raw_data)
 
             for index, period in enumerate(periods):
