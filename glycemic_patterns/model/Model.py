@@ -270,7 +270,8 @@ class Model:
 
         template_vars["language"] = self._translator.language
         template_vars["decision_tree_legend_path"] = 'file://{0}'.format(
-            os.path.abspath(os.path.join('templates', 'decision_tree_color_legend_{}.png'.format(language))))
+            os.path.abspath(os.path.join(os.path.dirname(__file__), '..','templates',
+             'decision_tree_color_legend_{}.png'.format(language))))
 
         html_out = template.render(template_vars)
 
