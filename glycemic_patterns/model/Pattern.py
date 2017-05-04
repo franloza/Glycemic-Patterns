@@ -1,3 +1,6 @@
+from calendar import day_name
+from math import floor
+
 from .Translator import Translator
 from .Rule import Rule
 
@@ -22,7 +25,7 @@ class Pattern:
         self.sample_size_pos = sample_size_pos
         self.sample_size_neg = sample_size_neg
 
-        self._compacted_rules = self.__compact_rules(rules)
+        self._compacted_rules = self.__compact_rules(rules, translator)
         self._translator = translator
 
 
@@ -50,7 +53,7 @@ class Pattern:
         return [rule for _,rule in self._compacted_rules.items()]
 
     @staticmethod
-    def __compact_rules(rules):
+    def __compact_rules(rules, translator):
         compacted_rules = {}
         for rule in rules:
             if rule.feature in compacted_rules:
@@ -68,7 +71,7 @@ class Pattern:
                     else:
                         max_threshold = compacted_rules[rule.feature].threshold
                         min_threshold = rule.threshold
-                    compacted_rules[rule.feature] = _CombinedRule(rule.feature, min_threshold, max_threshold)
+                    compacted_rules[rule.feature] = _CombinedRule(rule.feature, min_threshold, max_threshold, translator)
                 else:
                     compacted_rules[rule.feature] = rule
             else:
@@ -87,7 +90,39 @@ class _CombinedRule:
 
     def __str__(self):
         rule_list = self.__translator.translate_to_language([self.feature, '>'])
-        rule_list.append('{:.4g}'.format(self.min_threshold))
+        if self.is_weekday():
+            if isinstance(self.min_threshold, float):
+                self.min_threshold = self.__translator.translate_to_language([str(day_name[floor(self.min_threshold) - 1])])[0]
+                rule_list.append(str(self.min_threshold))
+        elif self.is_hour():
+            rule_list.append('{:d}:00'.format(floor(self.min_threshold)))
+        else:
+            rule_list.append('{:.4g}'.format(self.min_threshold))
         rule_list.extend(self.__translator.translate_to_language(['and', '<=']))
-        rule_list.append('{:.4g}'.format(self.max_threshold))
+        if self.is_weekday():
+            if isinstance(self.max_threshold, float):
+                self.max_threshold = self.__translator.translate_to_language([str(day_name[floor(self.max_threshold) - 1])])[0]
+                rule_list.append(str(self.max_threshold))
+        elif self.is_hour():
+            rule_list.append('{:d}:00'.format(floor(self.max_threshold)))
+        else:
+            rule_list.append('{:.4g}'.format(self.max_threshold))
         return " ".join(rule_list)
+
+    def is_boolean(self):
+        """ Method that returns if the feature of the rule can be expressed as either true or false
+        :return: True if the feature is boolean
+        """
+        return self.feature == 'Overlapped_Block'
+
+    def is_weekday(self):
+        """ Method that returns if the feature of the rule is a day of the week (1-7)
+        :return: True if the feature is a week day
+        """
+        return self.feature == 'Weekday'
+
+    def is_hour(self):
+        """ Method that returns if the feature of the rule is a hour of the day (0-24)
+        :return: True if the feature is an hour
+        """
+        return self.feature in ['Hour', 'Last_Meal_Hour']

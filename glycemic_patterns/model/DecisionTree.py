@@ -93,7 +93,7 @@ class DecisionTree:
             rules = [Rule(node["Feature"], node["Operator"], node["Threshold"], self.translator) for node in
                      leaf[:-1]]
             pattern = Pattern(rules, total_pos, total_neg, leaf[-1]["Impurity"], leaf[-1]["Number_Pos"],
-                              leaf[-1]["Number_Neg"])
+                              leaf[-1]["Number_Neg"], translator=self.translator)
             if pattern.sample_size > min_sample_size and pattern.impurity < max_impurity:
                 patterns.append(pattern)
 

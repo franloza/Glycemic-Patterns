@@ -28,7 +28,8 @@ class Rule:
         else:
             rule_list = self.__translator.translate_to_language([self.feature, self.operator])
             if self.is_weekday():
-                self.threshold =  self.__translator.translate_to_language([str(day_name[floor(self.threshold) - 1])])[0]
+                if isinstance(self.threshold, float):
+                    self.threshold =  self.__translator.translate_to_language([str(day_name[floor(self.threshold) - 1])])[0]
                 rule_list.append(str(self.threshold))
             elif self.is_hour():
                 rule_list.append('{:d}:00'.format(floor(self.threshold)))

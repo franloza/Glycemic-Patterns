@@ -9,24 +9,24 @@ from .lib import peakdetect
 # Get logger
 logger = logging.getLogger(__name__)
 
+# Maximum time with no registers
+MAX_NO_REGISTERS_TIME = datetime.timedelta(hours=8)
+MIN_PERIOD_DURATION = datetime.timedelta(days=1)
 
-def check_data(data):
+
+def check_period(data):
     # Raise exception if there are no carbo values
     if 5 not in data['Register_Type'].unique():
         raise ValueError('There are no registers of carbohydrates (Register type 5)')
 
-    # Raise exception if the data contain periods of time of more than one day without data
-    if (data["Datetime"].diff() > datetime.timedelta(days=1)).any():
-        raise ValueError('There are periods of time of more than one day without data')
-
     # Warn if the mean of carbohydrate entries per day is too low
-    warning_codes = []
+    warning_codes = set()
     carbo_registers = data['Register_Type'].value_counts().loc[5]
     number_of_days = (data.iloc[-1]['Datetime'] - data.iloc[0]['Datetime']).days
     if (carbo_registers / number_of_days) < 1:
         logger.warning(
             "W0001: The number of carbohydrate registers (Type 5) is less than 1 per day. Patterns may not be accurate")
-        warning_codes.append('W0001')
+        warning_codes.add('W0001')
     return warning_codes
 
 
@@ -400,6 +400,10 @@ def clean_extended_data(data):
     # Delete rows with no previous meal or that does not contain values of glucose of previous day
     new_data.dropna(inplace='True', subset=['Last_Meal',"Glucose_Auto_Prev_Day"])
 
+    # Return empty dataframe if the dataframe has less than 2 rows (Imposible to imputate values)
+    if new_data.shape[0] < 2:
+        return new_data.drop(new_data.index)
+
     # Get Carbo_Block and Carbo_Prev_Block column name
     carbo_block_column = next(column_name for column_name in data.columns
                               if column_name in ['Carbo_Block_U', 'Carbo_Block_G'])
@@ -489,6 +493,26 @@ def prepare_to_decision_trees(data, features=None):
 
     return [new_data, labels]
 
+
+def get_valid_periods(raw_data):
+    data = raw_data.reset_index(drop=True).copy()
+    split_indexes = data[data["Datetime"].diff() > MAX_NO_REGISTERS_TIME].index.values
+    if split_indexes.size != 0:
+        periods = []
+        indexes_offsets = np.diff(split_indexes)
+        for offset in indexes_offsets:
+            [period, data] = _split_dataframe(data, offset)
+            # Check if the period duration is greater or equal than the minimum
+            if (period.iloc[-1]['Datetime'] - period.iloc[0]['Datetime']) >= MIN_PERIOD_DURATION:
+                periods.append(period)
+        periods.append(data)
+    else:
+        periods = [data]
+    return periods
+
+
+def _split_dataframe (dataframe, index):
+    return [dataframe.iloc[:index], dataframe.iloc[index:]]
 
 def logical_or(x):
     return 1 if np.sum(x) > 0 else 0

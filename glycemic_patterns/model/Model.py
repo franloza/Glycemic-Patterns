@@ -65,7 +65,6 @@ class Model:
     def language(self, language):
         self._translator.language = language
         self._hyper_dt.translator = self._translator
-        self._hyper_dt.translator = self._translator
         self._hypo_dt.translator = self._translator
         self._severe_dt.translator = self._translator
 
@@ -78,6 +77,7 @@ class Model:
         self._hypo_dt = DecisionTree(data, labels["Hypoglycemia_Diagnosis_Next_Block"])
         self._severe_dt = DecisionTree(data, labels["Severe_Hyperglycemia_Diagnosis_Next_Block"])
         self.logger.debug('Time ellapsed fitting the model: {:.4f}'.format(time.time() - start_time))
+
 
     def generate_report(self, max_impurity=0.3, min_sample_size=0, format="pdf", to_file=True, output_path='',
                         block_info=True, language=None):
@@ -132,7 +132,7 @@ class Model:
                 template_vars["hyperglycemia_patterns"] = patterns
         except ValueError as e:
             self.logger.warning("W0011: {0}. {1}".format(subtitles[0], str(e)))
-            self._warnings.append("W0011")
+            self._warnings.add("W0011")
         except Exception as e:
             raise Exception('{0} : {1}'.format(subtitles[0], str(e)))
 
@@ -144,7 +144,7 @@ class Model:
                 template_vars["hypoglycemia_patterns"] = patterns
         except ValueError as e:
             self.logger.warning("W0012: {0}. {1}".format(subtitles[1], str(e)))
-            self._warnings.append("W0012")
+            self._warnings.add("W0012")
         except Exception as e:
             raise Exception('{0} : {1}'.format(subtitles[1], str(e)))
 
@@ -156,7 +156,7 @@ class Model:
                 template_vars["severe_hyperglycemia_patterns"] = patterns
         except ValueError as e:
             self.logger.warning("W0013: {0}. {1}".format(subtitles[2], str(e)))
-            self._warnings.append("W0012")
+            self._warnings.add("W0012")
         except Exception as e:
             raise Exception('{0} : {1}'.format(subtitles[2], str(e)))
 
@@ -307,6 +307,7 @@ class Model:
         self._base_dataset = pd.DataFrame()
         self._extended_dataset = pd.DataFrame()
         self.info_blocks = pd.DataFrame()
+        self._warnings = set()
 
         for index, path in enumerate(file_paths):
             # Load data
@@ -324,44 +325,53 @@ class Model:
             raw_data.columns = (to_col(raw_data.columns))
             self.logger.debug('Translated columns: {}'.format(str(raw_data.columns.values)))
 
-            # Check anomalies in the data
-            try:
-                self.logger.info('Checking data')
-                self._warnings = pp.check_data(raw_data)
-            except ValueError as e:
-                raise DataFormatException(e)
+            periods = pp.get_valid_periods(raw_data)
 
-            # Divide in blocks, extend dataset and clean data
-            self.logger.info('Defining blocks')
-            time.process_time()
-            block_data = pp.define_blocks(raw_data)
-            ptime = time.process_time()
-            self.logger.debug('define_blocks() Process Time: {:.8f}'.format(ptime))
-            self.logger.info('Adding features to dataset')
+            for index, period in enumerate(periods):
 
-            ptime = time.process_time()
-            extended_data = pp.extend_data(block_data)
-            ptime_new = time.process_time()
-            self.logger.debug('extend_data() Process Time: {:.8f}'.format(ptime_new - ptime))
+                # Divide periods in blocks, extend dataset and clean data
+                self.logger.info('Defining blocks of period')
+                self.logger.debug('Duration of raw period {} : {}'.format(index + 1,
+                    (period.iloc[-1]['Datetime'] - period.iloc[0]['Datetime'])))
 
-            cleaned_extended_data = pp.clean_extended_data(extended_data)
+                # Check anomalies in the period
+                try:
+                    self.logger.info('Checking period')
+                    self._warnings.union(pp.check_period(period))
+                except ValueError as e:
+                    # Discard period if it does not fulfil the requirements
+                    self.logger.debug('Period {} discarded after checking values'.format(index + 1))
+                    continue
 
-            # block_data.to_csv(path_or_buf='block_data.csv')
-            # extended_data.to_csv(path_or_buf='extended_data.csv')
-            # cleaned_extended_data.to_csv(path_or_buf='cleaned_extended_data.csv')
+                block_data = pp.define_blocks(period)
+                self.logger.info('Adding features to dataset')
+                extended_data = pp.extend_data(block_data)
+                cleaned_extended_data = pp.clean_extended_data(extended_data)
 
-            # Join meal time
-            info_blocks = extended_data[['Day_Block', 'Block', 'Block_Meal',
-                                         'Carbo_Block_U', 'Rapid_Insulin_Block',
-                                         'Glucose_Mean_Block', 'Glucose_Std_Block', 'Glucose_Max_Block',
-                                         'Glucose_Min_Block', 'Glucose_Mean_Day', 'Glucose_Std_Day',
-                                         'Glucose_Max_Day', 'Glucose_Min_Day', 'MAGE']].drop_duplicates(
-                subset=['Day_Block', 'Block'])
+                # Discard period if it is empty after cleaning
+                if cleaned_extended_data.empty:
+                    self.logger.debug('Period {} discarded after preprocessing'.format(index+1))
+                    continue
+                self.logger.debug('Duration of period {} after preprocessing: {}'.format(index + 1,
+                        (cleaned_extended_data.iloc[-1]['Datetime'] - cleaned_extended_data.iloc[0]['Datetime'])))
 
-            # Append to raw_data and main dataset
-            self._base_dataset = self._base_dataset.append(block_data, ignore_index=True)
-            self._extended_dataset = self._extended_dataset.append(cleaned_extended_data, ignore_index=True)
-            self.info_blocks = self.info_blocks.append(info_blocks, ignore_index=True)
+                # block_data.to_csv(path_or_buf='block_data.csv')
+                # extended_data.to_csv(path_or_buf='extended_data.csv')
+                # cleaned_extended_data.to_csv(path_or_buf='cleaned_extended_data.csv')
+
+                # Join meal time
+                info_blocks = extended_data[['Day_Block', 'Block', 'Block_Meal',
+                                             'Carbo_Block_U', 'Rapid_Insulin_Block',
+                                             'Glucose_Mean_Block', 'Glucose_Std_Block', 'Glucose_Max_Block',
+                                             'Glucose_Min_Block', 'Glucose_Mean_Day', 'Glucose_Std_Day',
+                                             'Glucose_Max_Day', 'Glucose_Min_Day', 'MAGE']].drop_duplicates(
+                    subset=['Day_Block', 'Block'])
+
+                # Append to raw_data and main dataset
+                self._base_dataset = self._base_dataset.append(block_data, ignore_index=True)
+                self._extended_dataset = self._extended_dataset.append(cleaned_extended_data, ignore_index=True)
+                self.info_blocks = self.info_blocks.append(info_blocks, ignore_index=True)
+
             self.logger.info("Data file has been preprocessed and appended to main dataset")
 
         self.logger.info('Data pre-processing finished')

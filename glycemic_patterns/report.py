@@ -73,6 +73,11 @@ def parse_args(args):
         type=str,
         default="es")
     parser.add_argument(
+        '-bi',
+        '--block-info',
+        action="store_true",
+        help="display information of the blocks",)
+    parser.add_argument(
         '-v',
         '--verbose',
         dest="loglevel",
@@ -117,6 +122,7 @@ def main(args):
         raise argparse.ArgumentTypeError("Report format must be either PDF or HTML")
     else:
         kwargs["format"] = args.format
+
 
     kwargs["language"] = args.report_language
 
