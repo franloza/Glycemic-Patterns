@@ -1,0 +1,83 @@
+@startuml
+
+Model o-- "3" DecisionTree
+Model o-- Translator
+DecisionTree o-- Translator
+DecisionTree "1..*" -- "0..*" Pattern
+Pattern o-- Translator
+Pattern o-- "*" Rule
+Rule o-- Translator
+
+class Model {
+    metadata: dict
+    @property language: str
+    -_translator : Translator
+    -_hyper_dt: DecisionTree
+    -_hypo_dt: DecisionTree
+    -_severe_dt: DecisionTree
+
+    __init__(self, file_paths, metadata=None,\n    language="es", logger=None)
+
+    @language.setter language(self, language)
+    fit (self, features=None)
+    generate_report (self, max_impurity=0.3, min_sample_size=0,\n    format="pdf", to_file=True, output_path='',\n    block_info=True, language=None)
+    -_process_data (self, file_paths)
+}
+
+class DecisionTree {
+    data: pandas.DataFrame
+    label: pandas.Series
+    translator: Translator
+    @property feature_importances: ndarray
+    @property tree: sklearn.tree._tree.Tree
+    -__model: sklearn.tree.DecisionTreeClassifier
+
+    __init__(self, data, label, min_percentage_label_leaf=0.1,\n    max_depth=5, translator=Translator())
+    cross_val_score(self, scoring, cv=10)
+    get_patterns(self, max_impurity=0.5, min_sample_size=0)
+    -_generate_graph(self)
+    -_get_decisions(self, children_left, children_right, decisions,\n    stack, node_id, are_leaves)
+}
+
+class Pattern {
+    total_pos: float64
+    total_neg: float64
+    impurity: float64
+    sample_size_pos: float64
+    sample_size_neg: float64
+    @property total_records: float64
+    @property sample_size: float64
+    @property rules: list
+    -_compacted_rules: dict
+    -_translator: Translator
+
+    __init__(self, rules, total_pos, total_neg, impurity,\n    sample_size_pos, sample_size_neg,\n    translator=Translator())
+    __str__(self)
+    - @staticmethod {static} __compact_rules(rules, translator)
+}
+
+class Rule {
+    feature: str
+    operator: str
+    threshold: float64
+    -_translator: Translator
+
+    __init__(self, feature, operator,threshold,\n    translator=Translator())
+    __str__(self)
+    is_boolean(self)
+    is_weekday(self)
+    is_hour(self)
+}
+
+class Translator {
+    @property language: str
+    {static} -_es_to_column_dict: bidict
+    {static}-_en_to_column_dict: bidict
+    {static}-_dict_mapper:dict
+
+    @language.setter language(self, language)
+    translate_to_language(self, terms)
+    translate_to_column(self, terms)
+}
+
+@enduml
