@@ -166,6 +166,10 @@ def mage(data):
             indexes.append(peak[0])
             peak_values.append((peak[1]))
 
+    # Sort indexes to get the excursions
+    indexes, peak_values = zip(*sorted(zip(indexes, peak_values)))
+    peak_values = list(peak_values)
+
     # Calculate differences between consecutive peaks
     differences = []
     for first, second in zip(peak_values, peak_values[1:]):
