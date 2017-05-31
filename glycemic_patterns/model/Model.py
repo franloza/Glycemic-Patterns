@@ -368,8 +368,12 @@ class Model:
                 # cleaned_extended_data.to_csv(path_or_buf='cleaned_extended_data.csv')
 
                 # Join meal time
+                # Get name of carbo column
+                carbo_column = next(
+                    column_name for column_name in extended_data.columns if column_name in ['Carbo_Block_U',
+                     'Carbo_Block_G'])
                 info_blocks = extended_data[['Day_Block', 'Block', 'Block_Meal',
-                                             'Carbo_Block_U', 'Rapid_Insulin_Block',
+                                             carbo_column, 'Rapid_Insulin_Block',
                                              'Glucose_Mean_Block', 'Glucose_Std_Block', 'Glucose_Max_Block',
                                              'Glucose_Min_Block', 'Glucose_Mean_Day', 'Glucose_Std_Day',
                                              'Glucose_Max_Day', 'Glucose_Min_Day', 'MAGE']].drop_duplicates(
