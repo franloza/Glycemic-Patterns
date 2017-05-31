@@ -345,7 +345,7 @@ class Model:
                 # Check anomalies in the period
                 try:
                     self.logger.info('Checking period')
-                    self._warnings.union(pp.check_period(period))
+                    self._warnings = self._warnings.union(pp.check_period(period))
                 except ValueError as e:
                     # Discard period if it does not fulfil the requirements
                     self.logger.debug('Period {} discarded after checking values'.format(index + 1))

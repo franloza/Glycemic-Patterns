@@ -23,9 +23,10 @@ def check_period(data):
     warning_codes = set()
     carbo_registers = data['Register_Type'].value_counts().loc[5]
     number_of_days = (data.iloc[-1]['Datetime'] - data.iloc[0]['Datetime']).days
-    if (carbo_registers / number_of_days) < 1:
+    if (carbo_registers / number_of_days) < 3:
         logger.warning(
-            "W0001: The number of carbohydrate registers (Type 5) is less than 1 per day. Patterns may not be accurate")
+            "W0001: There are periods with an average number of carbohydrate registers (Type 5) lower than 3 per day." +
+             "Patterns may not be accurate")
         warning_codes.add('W0001')
     return warning_codes
 
@@ -167,22 +168,24 @@ def mage(data):
             peak_values.append((peak[1]))
 
     # Sort indexes to get the excursions
-    indexes, peak_values = zip(*sorted(zip(indexes, peak_values)))
-    peak_values = list(peak_values)
-
-    # Calculate differences between consecutive peaks
-    differences = []
-    for first, second in zip(peak_values, peak_values[1:]):
-        differences.append(np.abs(first - second))
-
-    # Filter differences greater than standard deviation
-    valid_differences = [elem for elem in differences if elem > std]
-
-    # Return MAGE
-    if len(valid_differences) == 0:
+    sorted_tuples = list(zip(*sorted(zip(indexes, peak_values))))
+    if len(sorted_tuples) == 0:
         MAGE = np.nan
     else:
-        MAGE = sum(valid_differences) / len(valid_differences)
+        peak_values = list(sorted_tuples[1])
+        # Calculate differences between consecutive peaks
+        differences = []
+        for first, second in zip(peak_values, peak_values[1:]):
+            differences.append(np.abs(first - second))
+
+        # Filter differences greater than standard deviation
+        valid_differences = [elem for elem in differences if elem > std]
+
+        # Return MAGE
+        if len(valid_differences) == 0:
+            MAGE = np.nan
+        else:
+            MAGE = sum(valid_differences) / len(valid_differences)
 
     return MAGE
 

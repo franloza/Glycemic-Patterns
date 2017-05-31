@@ -93,7 +93,7 @@ class Translator:
         'Domingo': 'Sunday',
         # Warning translation
         'Avisos': 'Warnings',
-        'El número de registros de carbohidratos (Tipo 5) es menor de uno por día. Los patrones podrían no ser precisos': 'W0001',
+        'Hay periodos con una media de registros de carbohidratos (Tipo 5) menor de tres por día. Los patrones podrían no ser precisos': 'W0001',
         'No se han podido extraer patrones de hiperglucemia': 'W0011',
         'No se han podido extraer patrones de hipoglucemia': 'W0012',
         'No se han podido extraer patrones de hiperglucemia severa': 'W0013',
@@ -187,10 +187,11 @@ class Translator:
         'Sunday': 'Sunday',
         # Warning translation
         'Warnings': 'Warnings',
-        'The number of carbohydrate registers (Type 5) is lower than one per day. The patterns may not be precise': 'W0001',
-        'Hyperglycemia patterns were been able to be extracted': 'W0011',
-        'Hypoglycemia patterns were been able to be extracted': 'W0012',
-        'Severe hyperglycemia patterns were been able to be extracted': 'W0013',
+        'There are periods with an average number of carbohydrate registers (Type 5) lower than 3 per day. \
+            Patterns may not be accurate': 'W0001',
+        'Hyperglycemia patterns were not able to be extracted': 'W0011',
+        'Hypoglycemia patterns were not able to be extracted': 'W0012',
+        'Severe hyperglycemia patterns were not able to be extracted': 'W0013',
     })
 
     _dict_mapper = {
