@@ -5,6 +5,7 @@ from .Translator import Translator
 from .Rule import Rule
 from .Pattern import Pattern
 import numpy as np
+import pandas as pd
 
 
 class DecisionTree:
@@ -43,14 +44,14 @@ class DecisionTree:
 
     @property
     def feature_importances(self):
-        return self.__model.feature_importances_
+        return pd.DataFrame(columns=self.data.columns, data=[self.__model.feature_importances_])
 
     @property
     def tree(self):
         return self.__model.tree_
 
-    def cross_val_score(self, scoring, cv=10):
-        return np.mean(cross_val_score(self.__model, self.data, self.label, scoring=scoring, cv=cv, n_jobs=-1))
+    def cross_val_score(self, scoring, cv=10, n_jobs=-1):
+        return np.mean(cross_val_score(self.__model, self.data, self.label, scoring=scoring, cv=cv, n_jobs=n_jobs))
 
     def get_patterns(self, max_impurity=0.5, min_sample_size=0):
         """
