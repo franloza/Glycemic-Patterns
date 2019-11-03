@@ -1,5 +1,8 @@
 import datetime
 import logging
+import matplotlib
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
 import numpy as np
 import pandas as pd
 
@@ -405,7 +408,7 @@ def clean_extended_data(data):
     new_data = data.copy()
 
     # Delete rows with no previous meal or that does not contain values of glucose of previous day
-    new_data.dropna(inplace='True', subset=['Last_Meal',"Glucose_Auto_Prev_Day"])
+    new_data.dropna(inplace=True, subset=['Last_Meal',"Glucose_Auto_Prev_Day"])
 
     # Return empty dataframe if the dataframe has less than 2 rows (Imposible to imputate values)
     if new_data.shape[0] < 2:
@@ -431,7 +434,7 @@ def clean_extended_data(data):
                      "Glucose_Max_Prev_Day", "MAGE_Prev_Day"]] = imputed_cols
 
     # Delete null rows correspoding to first block of the dataset
-    new_data.dropna(inplace='True', subset=["Glucose_Mean_Prev_Block", "Glucose_Std_Prev_Block",
+    new_data.dropna(inplace=True, subset=["Glucose_Mean_Prev_Block", "Glucose_Std_Prev_Block",
                                             "Glucose_Min_Prev_Block", "Glucose_Max_Prev_Block",
                                             "Rapid_Insulin_Prev_Block",
                                             carbo_prev_block_column])
@@ -447,7 +450,7 @@ def clean_extended_data(data):
 
     # Drop rows with unknown labels (Data corresponding to last block) and column labels corresponding
     # to current entry and block
-    new_data.dropna(inplace='True', subset=["Hyperglycemia_Diagnosis_Next_Block",
+    new_data.dropna(inplace=True, subset=["Hyperglycemia_Diagnosis_Next_Block",
                                             "Hypoglycemia_Diagnosis_Next_Block",
                                             "In_Range_Diagnosis_Next_Block",
                                             "Severe_Hyperglycemia_Diagnosis_Next_Block"])

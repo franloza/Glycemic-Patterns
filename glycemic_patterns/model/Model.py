@@ -4,6 +4,9 @@ import os
 import uuid
 import logging
 import time
+import matplotlib
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
 import pandas as pd
 
 from collections import namedtuple, OrderedDict
@@ -189,9 +192,9 @@ class Model:
         hypo_dt_graph_path = join(output_path, 'Hypoglycemia_Tree.png')
         severe_dt_graph_path = join(output_path, 'Severe_Hyperglycemia_Tree.png')
 
-        self._hyper_dt.graph.write_png(hyper_dt_graph_path)
-        self._hypo_dt.graph.write_png(hypo_dt_graph_path)
-        self._severe_dt.graph.write_png(severe_dt_graph_path)
+        self._hyper_dt.graph[0].write_png(hyper_dt_graph_path)
+        self._hypo_dt.graph[0].write_png(hypo_dt_graph_path)
+        self._severe_dt.graph[0].write_png(severe_dt_graph_path)
 
         template_vars["hyper_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(hyper_dt_graph_path))
         template_vars["hypo_dt_graph_path"] = 'file:///{0}'.format(os.path.abspath(hypo_dt_graph_path))
